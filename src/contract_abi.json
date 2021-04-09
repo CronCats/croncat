@@ -1,0 +1,27 @@
+{
+  "development": {
+    "manager": "cron.in.testnet"
+  },
+  "production": {
+    "manager": "manager.cron.near"
+  },
+  "abis": {
+    "manager": {
+      "viewMethods": [
+        "get_tasks",
+        "get_task",
+        "get_agent"
+      ],
+      "changeMethods": [
+        "create_task",
+        "update_task",
+        "remove_task",
+        "proxy_call",
+        "register_agent",
+        "update_agent",
+        "unregister_agent",
+        "withdraw_task_balance"
+      ]
+    }
+  }
+}

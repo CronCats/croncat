@@ -1,0 +1,24 @@
+{
+  "name": "crond-js",
+  "version": "1.0.0",
+  "description": "Cron.near CLI and Agent Runner",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Cron-Near/crond-js.git"
+  },
+  "keywords": [
+    "Cron",
+    "NEAR",
+    "Blockchain"
+  ],
+  "author": "@trevorjtclarke",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Cron-Near/crond-js/issues"
+  },
+  "homepage": "https://github.com/Cron-Near/crond-js#readme"
+}

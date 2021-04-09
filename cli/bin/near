@@ -1,0 +1,17 @@
+#!/usr/bin/env node
+const flaggedRespawn = require('flagged-respawn');
+require('v8flags')((e, flags) => {
+    if (e) {
+        throw e;
+    }
+    flaggedRespawn(
+        flags.concat(['--experimental_repl_await']),
+        process.argv.indexOf('repl') == -1 ? process.argv : process.argv.concat(['--experimental-repl-await']),
+        ready => {
+            if (ready) {
+                // Need to filter out '--no-respawning' to avoid yargs complaining about it
+                process.argv = process.argv.filter(arg => arg != '--no-respawning');
+                require('./near-cli.js');
+            }
+        });
+})
