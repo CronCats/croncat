@@ -10,6 +10,7 @@ function getConfigByType(networkId, config) {
 }
 
 export default function getConfig(env, options = {}) {
+  console.log('env, options', env, options);
   switch (env) {
     case 'production':
     case 'mainnet':

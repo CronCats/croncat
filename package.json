@@ -4,6 +4,10 @@
   "description": "Cron.near CLI and Agent Runner",
   "main": "src/index.js",
   "scripts": {
+    "build": "babel src -d dist",
+    "start": "npm run build && node dist",
+    "restart": "rimraf dist && npm run start",
+    "dev": "nodemon --exec npm run restart",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -20,5 +24,19 @@
   "bugs": {
     "url": "https://github.com/Cron-Near/crond-js/issues"
   },
-  "homepage": "https://github.com/Cron-Near/crond-js#readme"
+  "homepage": "https://github.com/Cron-Near/crond-js#readme",
+  "dependencies": {
+    "core-js": "^3.10.1",
+    "dotenv": "^8.2.0",
+    "near-api-js": "^0.39.0",
+    "regenerator-runtime": "^0.13.7"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.13.14",
+    "@babel/core": "^7.13.15",
+    "@babel/plugin-proposal-class-properties": "^7.13.0",
+    "@babel/preset-env": "^7.13.15",
+    "nodemon": "^2.0.7",
+    "rimraf": "^3.0.2"
+  }
 }
