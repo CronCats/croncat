@@ -1,7 +1,7 @@
 {
-  "name": "crond-js",
+  "name": "croncat",
   "version": "1.0.0",
-  "description": "Cron.near CLI and Agent Runner",
+  "description": "cron.cat CLI and Agent Runner",
   "main": "src/index.js",
   "scripts": {
     "build": "babel src -d dist",
@@ -11,11 +11,11 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "bin": {
-    "crond": "bin/crond"
+    "croncat": "bin/croncat"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Cron-Near/crond-js.git"
+    "url": "git+https://github.com/Cron-Near/croncat.git"
   },
   "keywords": [
     "Cron",
@@ -25,9 +25,9 @@
   "author": "@trevorjtclarke",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/Cron-Near/crond-js/issues"
+    "url": "https://github.com/Cron-Near/croncat/issues"
   },
-  "homepage": "https://github.com/Cron-Near/crond-js#readme",
+  "homepage": "https://github.com/Cron-Near/croncat#readme",
   "dependencies": {
     "big.js": "^6.0.3",
     "chalk": "^4.1.0",

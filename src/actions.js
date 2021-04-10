@@ -8,7 +8,7 @@ import chalk from 'chalk'
 const log = console.log
 export const env = process.env.NODE_ENV || 'development'
 export const WAIT_INTERVAL_MS = process.env.WAIT_INTERVAL_MS || 500
-export const AGENT_ACCOUNT_ID = process.env.AGENT_ACCOUNT_ID || 'crond-agent'
+export const AGENT_ACCOUNT_ID = process.env.AGENT_ACCOUNT_ID || 'croncat-agent'
 export const BASE_GAS_FEE = 300000000000000
 export const BASE_ATTACHED_PAYMENT = 0
 

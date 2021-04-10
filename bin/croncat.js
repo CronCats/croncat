@@ -86,7 +86,7 @@ const status = {
 const config = getConfig(process.env.NODE_ENV || 'development')
 yargs // eslint-disable-line
   .strict()
-  .scriptName('crond')
+  .scriptName('croncat')
   .middleware(require('../cli/check-version'))
   .middleware(require('../cli/print-options'))
   .option('verbose', {
