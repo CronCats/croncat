@@ -4,27 +4,27 @@ Crond CLI is a Node.js application that relies on [`near-api-js`](https://github
 
 > note that **Node.js version 10+** is required to run Crond CLI
 
-## Installation
+## Docker Installation & Setup
+
+TBD
+
+## CLI Installation
 
 ```bash
 npm install -g crond-js
 ```
 
-## Usage
-
-In command line, from the directory with your project:
-
-```bash
-crond <command>
-```
-
 ### Commands
 
-For a list of up-to-date commands, run `crond` in your terminal with no arguments.
+For a list of up-to-date commands, run `crond --help` in your terminal.
 
-#### For account:
 ```bash
-  crond login                 # logging in through NEAR protocol wallet
-  crond init                  # create a cron Agent account
-  crond run                   # run the crond agent
+Usage: crond <command> [options]
+
+Commands:
+  crond register <accountId> <payableAccountId>  Add your agent to cron known agents
+  crond update <accountId> <payableAccountId>    Update your agent to cron known agents
+  crond unregister <accountId>                   Account to remove from list of active agents.
+  crond withdraw <accountId>                     Withdraw all rewards earned for this account
+  crond status <accountId>                       Check agent status and balance for this account
 ```

@@ -12,6 +12,17 @@ export const AGENT_ACCOUNT_ID = process.env.AGENT_ACCOUNT_ID || 'crond-agent'
 export const BASE_GAS_FEE = 300000000000000
 export const BASE_ATTACHED_PAYMENT = 0
 
+function removeUneededArgs(obj) {
+  const allowed = ['pk', 'payable_account_id']
+  const fin = {}
+
+  Object.keys(obj).forEach(k => {
+    if (allowed.includes(k)) fin[k] = obj[k]
+  })
+
+  return fin
+}
+
 export const Near = new NearProvider({
   networkId: env === 'production' ? 'mainnet' : 'testnet',
   accountId: AGENT_ACCOUNT_ID,
@@ -23,11 +34,12 @@ export async function connect() {
   await Near.getNearConnection()
 }
 
-export async function getCronManager() {
+export async function getCronManager(nearInstance) {
   if (cronManager) return cronManager
+  const _n = nearInstance || Near
   const abi = contractAbi.abis.manager
   const contractId = contractAbi[env].manager
-  cronManager = await Near.getContractInstance(contractId, abi)
+  cronManager = await _n.getContractInstance(contractId, abi)
   return cronManager
 }
 
@@ -91,13 +103,40 @@ export async function runAgentTick() {
   setTimeout(runAgentTick, WAIT_INTERVAL_MS)
 }
 
-export async function agentFunction(method, args) {
-  const manager = await getCronManager()
+export async function agentFunction(method, args, isView) {
+  const _n = new NearProvider(args)
+  await _n.getNearConnection()
+  agentAccount = await _n.getAccountCredentials(args.accountId)
+  const manager = await getCronManager(_n)
+  const params = method === 'get_agent' ? { pk: agentAccount.toString() } : removeUneededArgs(args)
+  let res
+
   try {
-    const res = await manager[method](args, BASE_GAS_FEE, BASE_ATTACHED_PAYMENT)
-    console.log('agentFunction res', method, res);
+    res = isView
+      ? await manager[method](params)
+      : await manager[method](params, BASE_GAS_FEE, BASE_ATTACHED_PAYMENT)
   } catch (e) {
-    console.log(e)
+    if (e && e.panic_msg) {
+      log('\n')
+      log('\t' + chalk.red(e.panic_msg.split(',')[0].replace('panicked at ', '').replace(/\'/g, '')))
+      log('\n')
+    }
+  }
+
+  if (!res && !isView) log('\n\t' + chalk.green(`${method} Success!`) + '\n')
+  if (!res && isView) log(chalk.green(`No response data`))
+
+  if (isView && res) {
+    try {
+      const payload = JSON.parse(res)
+      log('\n')
+      Object.keys(payload).forEach(k => {
+        log(`${chalk.bold.white(k.replace(/\_/g, ' '))}: ${chalk.white(payload[k])}`)
+      })
+      log('\n')
+    } catch (ee) {
+      // No need to do anything
+    }
   }
 }
 

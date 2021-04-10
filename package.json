@@ -10,6 +10,9 @@
     "dev": "nodemon --exec npm run restart",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "bin": {
+    "crond": "bin/crond"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Cron-Near/crond-js.git"
@@ -30,8 +33,11 @@
     "chalk": "^4.1.0",
     "core-js": "^3.10.1",
     "dotenv": "^8.2.0",
+    "esm": "^3.2.25",
+    "flagged-respawn": "^1.0.1",
     "near-api-js": "^0.39.0",
     "regenerator-runtime": "^0.13.7",
+    "v8flags": "^3.2.0",
     "yargs": "^16.2.0"
   },
   "devDependencies": {

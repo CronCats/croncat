@@ -26,7 +26,7 @@ class NearProvider {
 
     const existingKey = await keyStore.getKey(this.config.networkId, accountId)
     if (existingKey) {
-      console.log(`AGENT: "${accountId}", Public Key ${existingKey.publicKey}`)
+      // console.log(`AGENT: "${accountId}", Public Key ${existingKey.publicKey}`)
       this.accountId = accountId
       return existingKey.publicKey
     }

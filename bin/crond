@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-const flaggedRespawn = require('flagged-respawn');
+const flaggedRespawn = require('flagged-respawn')
+require = require('esm')(module /*, options*/);
 require('v8flags')((e, flags) => {
     if (e) {
         throw e;
@@ -10,8 +11,8 @@ require('v8flags')((e, flags) => {
         ready => {
             if (ready) {
                 // Need to filter out '--no-respawning' to avoid yargs complaining about it
-                process.argv = process.argv.filter(arg => arg != '--no-respawning');
-                require('./crond.js');
+                process.argv = process.argv.filter(arg => arg != '--no-respawning')
+                require('./crond.js')
             }
         });
 })
