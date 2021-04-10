@@ -26,10 +26,13 @@
   },
   "homepage": "https://github.com/Cron-Near/crond-js#readme",
   "dependencies": {
+    "big.js": "^6.0.3",
+    "chalk": "^4.1.0",
     "core-js": "^3.10.1",
     "dotenv": "^8.2.0",
     "near-api-js": "^0.39.0",
-    "regenerator-runtime": "^0.13.7"
+    "regenerator-runtime": "^0.13.7",
+    "yargs": "^16.2.0"
   },
   "devDependencies": {
     "@babel/cli": "^7.13.14",

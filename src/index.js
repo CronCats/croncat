@@ -1,7 +1,11 @@
 require('dotenv').config()
 const contractAbi = require('../src/contract_abi.json')
+import { utils } from 'near-api-js'
+import Big from 'big.js'
 import NearProvider from './near'
+import chalk from 'chalk'
 
+const log = console.log
 const env = process.env.NODE_ENV || 'development'
 const WAIT_INTERVAL_MS = process.env.WAIT_INTERVAL_MS || 500
 const AGENT_ACCOUNT_ID = process.env.AGENT_ACCOUNT_ID || 'crond-agent'
@@ -27,8 +31,13 @@ async function registerAgent() {
   const manager = await getCronManager()
 
   // NOTE: Optional "payable_account_id" here
-  const res = await manager.register_agent({}, BASE_GAS_FEE, BASE_ATTACHED_PAYMENT)
-  console.log('registerAgent res', res);
+  try {
+    await manager.register_agent({}, BASE_GAS_FEE, BASE_ATTACHED_PAYMENT)
+    log(`Registered Agent: ${chalk.white(AGENT_ACCOUNT_ID)}`)
+  } catch (e) {
+    log(`${chalk.red('Registered Failed: ')}${chalk.bold.red('Please remove your credentials and trying again.')}`)
+    process.exit(1)
+  }
 }
 
 async function getAgent() {
@@ -38,14 +47,21 @@ async function getAgent() {
 
 async function runAgentTick() {
   const manager = await getCronManager()
+  let tasks = []
 
   // 1. Check for tasks
-  const tasks = await manager.get_tasks()
-  console.log('tasks', tasks);
+  tasks = await manager.get_tasks()
+  log(`${chalk.gray(new Date().toISOString())} Current Tasks: ${chalk.blueBright(tasks.length)}`)
 
-  // 2. Sign tasks and submit to chain
-  const res = await manager.proxy_call({}, BASE_GAS_FEE, BASE_ATTACHED_PAYMENT)
-  console.log('runAgentTick res', res);
+  // 2. Sign task and submit to chain
+  if (tasks && tasks.length > 0) {
+    try {
+      const res = await manager.proxy_call({}, BASE_GAS_FEE, BASE_ATTACHED_PAYMENT)
+      console.log('runAgentTick res', res);
+    } catch (e) {
+      console.log(e)
+    }
+  }
 
   // Wait, then loop again.
   setTimeout(runAgentTick, WAIT_INTERVAL_MS)
@@ -60,13 +76,30 @@ async function runAgentTick() {
 
   // 2. Check for balance, if enough to execute txns, start main tasks
   const balance = await Near.getAccountBalance()
-  console.log('balance', balance);
+  const formattedBalance = utils.format.formatNearAmount(balance)
+  const hasEnough = Big(balance).gt(BASE_GAS_FEE)
+  log(`
+    Agent Account: ${chalk.white(AGENT_ACCOUNT_ID)}
+    Agent Balance: ${!hasEnough ? chalk.red(formattedBalance) : chalk.green(formattedBalance)}
+  `)
+  if (!hasEnough) {
+  log(`
+    ${chalk.red('Your agent account does not have enough to pay for signing transactions.')}
+    Use the following steps:
+    ${chalk.bold.white('1. Copy your account id: ')}${chalk.underline.white(AGENT_ACCOUNT_ID)}
+    ${chalk.bold.white('2. Use the web wallet to send funds: ')}${chalk.underline.blue(Near.config.walletUrl + '/send-money')}
+    ${chalk.bold.white('3. Use NEAR CLI to send funds: ')} "near send OTHER_ACCOUNT ${AGENT_ACCOUNT_ID} ${(Big(BASE_GAS_FEE).mul(4))}"
+  `)
+    process.exit(1)
+    return
+  }
 
   // 3. Check if agent is registered, if not register immediately before proceeding
   try {
-    const agent = await getAgent()
-    console.log('agent', agent);
-  } catch (error) {
+    await getAgent()
+    log(`Verified Agent: ${chalk.white(AGENT_ACCOUNT_ID)}`)
+  } catch (e) {
+    log(`No Agent: ${chalk.gray('trying to register...')}`)
     await registerAgent()
   }
 

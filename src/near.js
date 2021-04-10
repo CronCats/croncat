@@ -7,31 +7,34 @@ import { homedir } from 'os'
 import getConfig from './config'
 
 const CREDENTIALS_DIR = '.near-credentials'
-const credentialsPath = path.join(homedir(), CREDENTIALS_DIR)
+const credentialsBasePath = path.join(homedir(), CREDENTIALS_DIR)
 
 class NearProvider {
 
   constructor(config = {}) {
     this.config = getConfig(config.networkId || 'testnet')
-    console.log('this.config', this.config);
     this.credentials = null
     this.client = null
+    this.accountId = null
 
     return this
   }
 
   async getAccountCredentials(accountId) {
-    const keyStore = new keyStores.UnencryptedFileSystemKeyStore(credentialsPath)
+    if (!accountId) return
+    const keyStore = new keyStores.UnencryptedFileSystemKeyStore(credentialsBasePath)
 
     const existingKey = await keyStore.getKey(this.config.networkId, accountId)
     if (existingKey) {
       console.log(`AGENT: "${accountId}", Public Key ${existingKey.publicKey}`)
+      this.accountId = accountId
       return existingKey.publicKey
     }
 
     const keyPair = KeyPair.fromRandom('ed25519')
     const publicKey = keyPair.publicKey.toString()
     const id = accountId || implicitAccountId(publicKey)
+    this.accountId = id
     await keyStore.setKey(this.config.networkId, id, keyPair)
     console.log(`NEW AGENT CREATED: "${id}", Public Key ${publicKey}\n Requires funds to start processing tasks.`)
     return publicKey
@@ -39,8 +42,7 @@ class NearProvider {
 
   async getNearConnection() {
     if (this.client) return this.client
-    const keyStore = new keyStores.UnencryptedFileSystemKeyStore(credentialsPath)
-    console.log('keyStore', keyStore);
+    const keyStore = new keyStores.UnencryptedFileSystemKeyStore(credentialsBasePath)
     this.client = await connect(Object.assign({ deps: { keyStore } }, this.config))
     return this.client
   }
@@ -54,9 +56,7 @@ class NearProvider {
 
   async loadAccount() {
     if (!this.client) return
-    const user = await this.client.account(this.client.accountId)
-    console.log('user', user.accountId);
-
+    const user = await this.client.account(this.accountId)
     return user
   }
 
