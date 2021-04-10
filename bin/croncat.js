@@ -83,6 +83,16 @@ const status = {
     await agentFunction('get_agent', options, true);
   }
 };
+
+const tasks = {
+  command: 'tasks',
+  desc: 'Check how many tasks are available',
+  builder: (yargs) => yargs,
+  handler: async options => {
+    await agentFunction('get_tasks', options, true);
+  }
+};
+
 const config = getConfig(process.env.NODE_ENV || 'development')
 yargs // eslint-disable-line
   .strict()
@@ -123,6 +133,7 @@ yargs // eslint-disable-line
   .command(unregisterAgent)
   .command(withdrawBalance)
   .command(status)
+  .command(tasks)
   .config(config)
   .showHelpOnFail(true)
   .recommendCommands()
