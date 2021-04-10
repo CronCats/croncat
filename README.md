@@ -27,4 +27,5 @@ Commands:
   croncat unregister <accountId>                   Account to remove from list of active agents.
   croncat withdraw <accountId>                     Withdraw all rewards earned for this account
   croncat status <accountId>                       Check agent status and balance for this account
+  croncat tasks                                    Check how many tasks are available
 ```
