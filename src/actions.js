@@ -51,7 +51,11 @@ export async function registerAgent() {
     await manager.register_agent({}, BASE_GAS_FEE, BASE_ATTACHED_PAYMENT)
     log(`Registered Agent: ${chalk.white(AGENT_ACCOUNT_ID)}`)
   } catch (e) {
-    log(`${chalk.red('Registered Failed: ')}${chalk.bold.red('Please remove your credentials and trying again.')}`)
+    if(e.type === 'KeyNotFound') {
+      log(`${chalk.red('Agent Registration Failed:')} ${chalk.bold.red(`Please login to your account '${AGENT_ACCOUNT_ID}' and try again.`)}`)
+    } else {
+      log(`${chalk.red('Agent Registration Failed:')} ${chalk.bold.red('Please remove your credentials and trying again.')}`)
+    }
     process.exit(1)
   }
 }
