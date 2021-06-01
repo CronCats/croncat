@@ -1,6 +1,6 @@
 {
   "name": "croncat",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "cron.cat CLI and Agent Runner",
   "main": "src/index.js",
   "scripts": {
@@ -8,7 +8,8 @@
     "start": "npm run build && node dist",
     "restart": "rimraf dist && npm run start",
     "dev": "nodemon --exec npm run restart",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "package": "yarn build && pkg -t node14-alpine-x64 --output croncat-agent dist/index.js"
   },
   "bin": {
     "croncat": "bin/croncat"
@@ -47,6 +48,7 @@
     "@babel/plugin-proposal-class-properties": "^7.13.0",
     "@babel/preset-env": "^7.13.15",
     "nodemon": "^2.0.7",
+    "pkg": "^5.2.1",
     "rimraf": "^3.0.2"
   }
 }
