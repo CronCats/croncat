@@ -90,7 +90,7 @@ export async function runAgentTick() {
   let tasks = []
 
   // 1. Check for tasks
-  tasks = await manager.get_tasks()
+  tasks = (await manager.get_tasks()).filter(v => !!v)
   log(`${chalk.gray(new Date().toISOString())} Current Tasks: ${chalk.blueBright(tasks.length)}`)
 
   // 2. Sign task and submit to chain
@@ -110,9 +110,9 @@ export async function runAgentTick() {
 export async function agentFunction(method, args, isView) {
   const _n = new NearProvider(args)
   await _n.getNearConnection()
-  agentAccount = await _n.getAccountCredentials(args.accountId)
+  agentAccount = (await _n.getAccountCredentials(args.accountId)).toString()
   const manager = await getCronManager(_n)
-  const params = method === 'get_agent' ? { pk: agentAccount.toString() } : removeUneededArgs(args)
+  const params = method === 'get_agent' ? { pk: agentAccount } : removeUneededArgs(args)
   let res
 
   try {
@@ -148,7 +148,7 @@ export async function bootstrapAgent() {
   await connect()
 
   // 1. Check for local signing keys, if none - generate new and halt until funded
-  agentAccount = await Near.getAccountCredentials(AGENT_ACCOUNT_ID)
+  agentAccount = (await Near.getAccountCredentials(AGENT_ACCOUNT_ID)).toString()
 
   // 2. Check for balance, if enough to execute txns, start main tasks
   await checkAgentBalance()
