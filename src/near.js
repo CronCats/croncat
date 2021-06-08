@@ -4,7 +4,7 @@ import { connect, KeyPair, keyStores, Contract, WalletConnection, WalletAccount 
 // import fs from 'fs'
 import path from 'path'
 import { homedir } from 'os'
-import getConfig from './config'
+import getConfig from './configuration'
 
 const CREDENTIALS_DIR = '.near-credentials'
 const credentialsBasePath = path.join(homedir(), CREDENTIALS_DIR)

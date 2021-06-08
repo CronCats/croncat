@@ -1,7 +1,7 @@
 require('dotenv').config()
 const chalk = require('chalk')
 const yargs = require('yargs')
-import getConfig from '../src/config'
+import getConfig from '../src/configuration'
 const { agentFunction } = require('../src/actions')
 
 const registerAgent = {
