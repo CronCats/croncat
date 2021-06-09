@@ -6,7 +6,40 @@ croncat CLI is a Node.js application that relies on [`near-api-js`](https://gith
 
 ## Docker Installation & Setup
 
-TBD
+Before running the image make sure you are logged in with near:
+
+```bash
+near login
+```
+
+This should create the following directory (if it doesn't exist already):
+
+```bash
+ls ~/.near-credentials
+default testnet
+```
+
+Build the image:
+```bash
+yarn docker:build
+```
+
+Run docker in detached mode and set the agent account id:
+```bash
+docker run --rm -d --env AGENT_ACCOUNT_ID=foba.testnet -v ~/.near-credentials:/root/.near-credentials croncat
+```
+
+Run the cli:
+
+```bash
+docker run --rm -it croncat ./croncat-cli
+```
+
+Add an alias for convenience:
+```bash
+alias croncat="docker run --rm -it croncat ./croncat-cli"
+```
+This will allow you to run the commands as seen below.
 
 ## CLI Installation
 
