@@ -110,7 +110,7 @@ export async function runAgentTick() {
 export async function agentFunction(method, args, isView) {
   const _n = new NearProvider(args)
   await _n.getNearConnection()
-  agentAccount = (await _n.getAccountCredentials(args.accountId)).toString()
+  agentAccount = (await _n.getAccountCredentials(args.accountId))?.toString()
   const manager = await getCronManager(_n)
   const params = method === 'get_agent' ? { pk: agentAccount } : removeUneededArgs(args)
   let res

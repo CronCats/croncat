@@ -5,11 +5,14 @@
   "main": "src/index.js",
   "scripts": {
     "build": "babel src -d dist",
-    "start": "npm run build && node dist",
+    "build:cli": "babel src -d dist/src; babel bin -d dist/bin; babel cli -d dist/cli; cp src/contract_abi.json dist/src; cp package.json dist",
+    "start": "npm run build && node dist/src",
     "restart": "rimraf dist && npm run start",
     "dev": "nodemon --exec npm run restart",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "package": "yarn build && pkg -t node14-alpine-x64 --output croncat-agent dist/index.js"
+    "package": "rimraf dist && yarn build && pkg -t node14-alpine-x64 --output croncat-agent dist/index.js",
+    "package:cli": "yarn build:cli && pkg -t node14-alpine-x64 --output croncat-cli dist/bin/croncat.js",
+    "docker:build": "docker build -t croncat ."
   },
   "bin": {
     "croncat": "bin/croncat"
@@ -36,6 +39,7 @@
     "dotenv": "^8.2.0",
     "esm": "^3.2.25",
     "flagged-respawn": "^1.0.1",
+    "is-ci": "^3.0.0",
     "near-api-js": "^0.39.0",
     "regenerator-runtime": "^0.13.7",
     "update-notifier": "^5.1.0",

@@ -14,8 +14,11 @@ RUN yarn
 
 COPY . .
 
-# Build and package the ap into a binary named 'croncat-agent'
+# Build and package the agent into a binary named 'croncat-agent'
 RUN yarn package
+
+# Build and package the cli into a binary named 'croncat-cli'
+RUN yarn package:cli
 
 # Copy the default .env values over
 RUN mv .env.example .env
@@ -32,6 +35,7 @@ WORKDIR /app
 RUN apk update && apk add --no-cache libstdc++ libgcc
 
 # copy prebuilt binary from previous step
+COPY --from=builder /app/croncat-cli croncat-cli
 COPY --from=builder /app/croncat-agent croncat-agent
 COPY --from=builder /app/.env .env
 
