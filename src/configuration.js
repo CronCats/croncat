@@ -30,6 +30,6 @@ export default function getConfig(env, options = {}) {
         walletUrl: 'http://localhost:4000/wallet',
       }
     default:
-      throw Error(`Unconfigured environment '${env}'. Can be configured in src/config.js.`)
+      throw Error(`Unconfigured environment '${env}'. Can be configured in src/configuration.js.`)
   }
 }
