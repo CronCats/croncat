@@ -26,7 +26,7 @@ yarn docker:build
 
 Run docker in detached mode and set the agent account id:
 ```bash
-docker run --rm -d --env AGENT_ACCOUNT_ID=foba.testnet -v ~/.near-credentials:/root/.near-credentials croncat
+docker run --rm -d --env AGENT_ACCOUNT_ID=your_agent.testnet -v ~/.near-credentials:/root/.near-credentials croncat
 ```
 
 Run the cli:
