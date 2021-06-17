@@ -1,12 +1,12 @@
 {
   "name": "croncat",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "cron.cat CLI and Agent Runner",
   "main": "src/index.js",
   "scripts": {
     "build": "babel src -d dist",
     "build:cli": "babel src -d dist/src; babel bin -d dist/bin; babel cli -d dist/cli; cp src/contract_abi.json dist/src; cp package.json dist",
-    "start": "npm run build && node dist/src",
+    "start": "npm run build && node dist",
     "restart": "rimraf dist && npm run start",
     "dev": "nodemon --exec npm run restart",
     "test": "echo \"Error: no test specified\" && exit 1",

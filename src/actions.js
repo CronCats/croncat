@@ -39,6 +39,7 @@ export async function getCronManager(nearInstance) {
   const _n = nearInstance || Near
   const abi = contractAbi.abis.manager
   const contractId = contractAbi[env].manager
+  console.log('using contract:', contractId);
   cronManager = await _n.getContractInstance(contractId, abi)
   return cronManager
 }
@@ -110,7 +111,7 @@ export async function runAgentTick() {
 export async function agentFunction(method, args, isView) {
   const _n = new NearProvider(args)
   await _n.getNearConnection()
-  agentAccount = (await _n.getAccountCredentials(args.accountId))?.toString()
+  agentAccount = (await _n.getAccountCredentials(args.accountId)).toString()
   const manager = await getCronManager(_n)
   const params = method === 'get_agent' ? { pk: agentAccount } : removeUneededArgs(args)
   let res

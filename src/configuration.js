@@ -1,4 +1,5 @@
 function getConfigByType(networkId, config) {
+  console.log(networkId);
   return {
     networkId,
     nodeUrl: `https://rpc.${networkId}.near.org`,
