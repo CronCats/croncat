@@ -2,7 +2,7 @@ require('dotenv').config()
 const chalk = require('chalk')
 const yargs = require('yargs')
 import getConfig from '../src/configuration'
-const { agentFunction } = require('../src/actions')
+const { agentFunction, bootstrapAgent, runAgentTick } = require('../src/actions')
 
 const registerAgent = {
   command: 'register <accountId> <payableAccountId>',
@@ -90,6 +90,18 @@ const tasks = {
   builder: (yargs) => yargs,
   handler: async options => {
     await agentFunction('get_tasks', options, true);
+  }
+};
+
+const tasks = {
+  command: 'run',
+  desc: 'Run tasks that are available, if agent is registered and has balance',
+  builder: (yargs) => yargs,
+  handler: async () => {
+    await bootstrapAgent()
+
+    // MAIN AGENT LOOP
+    runAgentTick()
   }
 };
 
