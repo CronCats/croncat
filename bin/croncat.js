@@ -94,11 +94,11 @@ const tasks = {
 };
 
 const go = {
-  command: 'go',
+  command: 'go <accountId>',
   desc: 'Run tasks that are available, if agent is registered and has balance',
   builder: (yargs) => yargs,
-  handler: async () => {
-    await bootstrapAgent()
+  handler: async options => {
+    await bootstrapAgent(options.accountId)
 
     // MAIN AGENT LOOP
     runAgentTick()

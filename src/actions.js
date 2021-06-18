@@ -48,7 +48,7 @@ export async function registerAgent() {
 
   // NOTE: Optional "payable_account_id" here
   try {
-    await manager.register_agent({ accountId: AGENT_ACCOUNT_ID }, BASE_GAS_FEE, BASE_ATTACHED_PAYMENT)
+    await manager.register_agent({ agent_account_id: AGENT_ACCOUNT_ID }, BASE_GAS_FEE, BASE_ATTACHED_PAYMENT)
     log(`Registered Agent: ${chalk.white(AGENT_ACCOUNT_ID)}`)
   } catch (e) {
     if(e.type === 'KeyNotFound') {
@@ -62,7 +62,7 @@ export async function registerAgent() {
 
 export async function getAgent() {
   const manager = await getCronManager()
-  return manager.get_agent({ pk: agentAccount })
+  return manager.get_agent({ account: agentAccount })
 }
 
 export async function checkAgentBalance() {
@@ -144,11 +144,11 @@ export async function agentFunction(method, args, isView) {
   }
 }
 
-export async function bootstrapAgent() {
+export async function bootstrapAgent(agentId) {
   await connect()
 
   // 1. Check for local signing keys, if none - generate new and halt until funded
-  agentAccount = `${await Near.getAccountCredentials(AGENT_ACCOUNT_ID)}`
+  agentAccount = `${await Near.getAccountCredentials(agentId || AGENT_ACCOUNT_ID)}`
 
   // 2. Check for balance, if enough to execute txns, start main tasks
   await checkAgentBalance()
