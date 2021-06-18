@@ -43,12 +43,12 @@ export async function getCronManager(nearInstance) {
   return cronManager
 }
 
-export async function registerAgent() {
+export async function registerAgent(agentId) {
   const manager = await getCronManager()
 
   // NOTE: Optional "payable_account_id" here
   try {
-    await manager.register_agent({ agent_account_id: AGENT_ACCOUNT_ID }, BASE_GAS_FEE, BASE_ATTACHED_PAYMENT)
+    await manager.register_agent({ agent_account_id: agentId || AGENT_ACCOUNT_ID }, BASE_GAS_FEE, BASE_ATTACHED_PAYMENT)
     log(`Registered Agent: ${chalk.white(AGENT_ACCOUNT_ID)}`)
   } catch (e) {
     if(e.type === 'KeyNotFound') {
@@ -60,24 +60,24 @@ export async function registerAgent() {
   }
 }
 
-export async function getAgent() {
+export async function getAgent(agentId) {
   const manager = await getCronManager()
-  return manager.get_agent({ account: agentAccount })
+  return manager.get_agent({ account: agentId || agentAccount })
 }
 
-export async function checkAgentBalance() {
+export async function checkAgentBalance(agentId) {
   const balance = await Near.getAccountBalance()
   const formattedBalance = utils.format.formatNearAmount(balance)
   const hasEnough = Big(balance).gt(BASE_GAS_FEE)
   log(`
-    Agent Account: ${chalk.white(AGENT_ACCOUNT_ID)}
+    Agent Account: ${chalk.white(agentId || AGENT_ACCOUNT_ID)}
     Agent Balance: ${!hasEnough ? chalk.red(formattedBalance) : chalk.green(formattedBalance)}
   `)
   if (!hasEnough) {
     log(`
     ${chalk.red('Your agent account does not have enough to pay for signing transactions.')}
     Use the following steps:
-    ${chalk.bold.white('1. Copy your account id: ')}${chalk.underline.white(AGENT_ACCOUNT_ID)}
+    ${chalk.bold.white('1. Copy your account id: ')}${chalk.underline.white(agentId || AGENT_ACCOUNT_ID)}
     ${chalk.bold.white('2. Use the web wallet to send funds: ')}${chalk.underline.blue(Near.config.walletUrl + '/send-money')}
     ${chalk.bold.white('3. Use NEAR CLI to send funds: ')} "near send OTHER_ACCOUNT ${AGENT_ACCOUNT_ID} ${(Big(BASE_GAS_FEE).mul(4))}"
   `)
@@ -151,14 +151,14 @@ export async function bootstrapAgent(agentId) {
   agentAccount = `${await Near.getAccountCredentials(agentId || AGENT_ACCOUNT_ID)}`
 
   // 2. Check for balance, if enough to execute txns, start main tasks
-  await checkAgentBalance()
+  await checkAgentBalance(agentId)
 
   // 3. Check if agent is registered, if not register immediately before proceeding
   try {
-    await getAgent()
+    await getAgent(agentId)
     log(`Verified Agent: ${chalk.white(AGENT_ACCOUNT_ID)}`)
   } catch (e) {
     log(`No Agent: ${chalk.gray('trying to register...')}`)
-    await registerAgent()
+    await registerAgent(agentId)
   }
 }
