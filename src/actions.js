@@ -13,7 +13,7 @@ export const BASE_GAS_FEE = 300000000000000
 export const BASE_ATTACHED_PAYMENT = 0
 
 function removeUneededArgs(obj) {
-  const allowed = ['agent_account_id', 'payable_account_id', 'account']
+  const allowed = ['agent_account_id', 'payable_account_id', 'account', 'offset']
   const fin = {}
 
   Object.keys(obj).forEach(k => {
@@ -139,7 +139,7 @@ export async function agentFunction(method, args, isView) {
       })
       log('\n')
     } catch (ee) {
-      log(`${chalk.bold.white(method.replace(/\_/g, ' '))}: ${chalk.white(payload)}`)
+      log(`${chalk.bold.white(method.replace(/\_/g, ' '))}: ${chalk.white(res)}`)
     }
   }
 }

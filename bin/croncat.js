@@ -89,7 +89,8 @@ const tasks = {
   desc: 'Check how many tasks are available',
   builder: (yargs) => yargs,
   handler: async options => {
-    await agentFunction('get_tasks', options, true);
+    const opts = { ...options, offset: +new Date()}
+    await agentFunction('get_tasks', opts, true);
   }
 };
 
