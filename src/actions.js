@@ -62,7 +62,13 @@ export async function registerAgent(agentId) {
 
 export async function getAgent(agentId) {
   const manager = await getCronManager()
-  return manager.get_agent({ account: agentId || agentAccount })
+  try {
+    const res = manager.get_agent({ account: agentId || agentAccount })
+    console.log('getAgent', res, agentId || agentAccount);
+    return res
+  } catch (ge) {
+    console.log(ge);
+  }
 }
 
 export async function checkAgentBalance(agentId) {
@@ -156,7 +162,7 @@ export async function bootstrapAgent(agentId) {
   // 3. Check if agent is registered, if not register immediately before proceeding
   try {
     await getAgent(agentId)
-    log(`Verified Agent: ${chalk.white(AGENT_ACCOUNT_ID)}`)
+    log(`Verified Agent: ${chalk.white(agentId || AGENT_ACCOUNT_ID)}`)
   } catch (e) {
     log(`No Agent: ${chalk.gray('trying to register...')}`)
     await registerAgent(agentId)
