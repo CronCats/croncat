@@ -39,7 +39,6 @@ export async function getCronManager(nearInstance) {
   const _n = nearInstance || Near
   const abi = contractAbi.abis.manager
   const contractId = contractAbi[env].manager
-  console.log('using contract:', contractId);
   cronManager = await _n.getContractInstance(contractId, abi)
   return cronManager
 }

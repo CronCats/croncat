@@ -24,7 +24,7 @@ Commands:
   croncat withdraw <accountId>                     Withdraw all rewards earned for this account
   croncat status <accountId>                       Check agent status and balance for this account
   croncat tasks                                    Check how many tasks are available
-  croncat run                                      Run tasks that are available, if agent is registered and has balance
+  croncat start                                    Run tasks that are available, if agent is registered and has balance
 ```
 
 ## Docker Installation & Setup
