@@ -54,7 +54,7 @@ export async function registerAgent() {
     if(e.type === 'KeyNotFound') {
       log(`${chalk.red('Agent Registration Failed:')} ${chalk.bold.red(`Please login to your account '${AGENT_ACCOUNT_ID}' and try again.`)}`)
     } else {
-      log(`${chalk.red('Agent Registration Failed:')} ${chalk.bold.red('Please remove your credentials and trying again.')}`)
+      log(`${chalk.red('Agent Registration Failed:')} ${chalk.bold.red('Please remove your credentials and try again.')}`)
     }
     process.exit(1)
   }
@@ -139,7 +139,7 @@ export async function agentFunction(method, args, isView) {
       })
       log('\n')
     } catch (ee) {
-      // No need to do anything
+      log(`${chalk.bold.white(method.replace(/\_/g, ' '))}: ${chalk.white(payload)}`)
     }
   }
 }
