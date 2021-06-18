@@ -13,7 +13,7 @@ export const BASE_GAS_FEE = 300000000000000
 export const BASE_ATTACHED_PAYMENT = 0
 
 function removeUneededArgs(obj) {
-  const allowed = ['pk', 'payable_account_id']
+  const allowed = ['agent_account_id', 'payable_account_id', 'account']
   const fin = {}
 
   Object.keys(obj).forEach(k => {
@@ -48,7 +48,7 @@ export async function registerAgent() {
 
   // NOTE: Optional "payable_account_id" here
   try {
-    await manager.register_agent({}, BASE_GAS_FEE, BASE_ATTACHED_PAYMENT)
+    await manager.register_agent({ accountId: AGENT_ACCOUNT_ID }, BASE_GAS_FEE, BASE_ATTACHED_PAYMENT)
     log(`Registered Agent: ${chalk.white(AGENT_ACCOUNT_ID)}`)
   } catch (e) {
     if(e.type === 'KeyNotFound') {
@@ -110,9 +110,9 @@ export async function runAgentTick() {
 export async function agentFunction(method, args, isView) {
   const _n = new NearProvider(args)
   await _n.getNearConnection()
-  agentAccount = (await _n.getAccountCredentials(args.accountId)).toString()
+  agentAccount = agentAccount ? agentAccount : `${await _n.getAccountCredentials(args.accountId)}`
   const manager = await getCronManager(_n)
-  const params = method === 'get_agent' ? { pk: agentAccount } : removeUneededArgs(args)
+  const params = method === 'get_agent' ? { account: agentAccount } : removeUneededArgs(args)
   let res
 
   try {
@@ -148,7 +148,7 @@ export async function bootstrapAgent() {
   await connect()
 
   // 1. Check for local signing keys, if none - generate new and halt until funded
-  agentAccount = (await Near.getAccountCredentials(AGENT_ACCOUNT_ID)).toString()
+  agentAccount = `${await Near.getAccountCredentials(AGENT_ACCOUNT_ID)}`
 
   // 2. Check for balance, if enough to execute txns, start main tasks
   await checkAgentBalance()

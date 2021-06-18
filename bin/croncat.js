@@ -93,8 +93,8 @@ const tasks = {
   }
 };
 
-const start = {
-  command: 'start',
+const go = {
+  command: 'go',
   desc: 'Run tasks that are available, if agent is registered and has balance',
   builder: (yargs) => yargs,
   handler: async () => {
@@ -146,7 +146,7 @@ yargs // eslint-disable-line
   .command(withdrawBalance)
   .command(status)
   .command(tasks)
-  .command(start)
+  .command(go)
   .config(config)
   .showHelpOnFail(true)
   .recommendCommands()
