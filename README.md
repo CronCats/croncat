@@ -75,6 +75,20 @@ For local testing: `npm start` or `yarn start`
 
 You can also test against other networks: `NODE_ENV=production yarn start` which is the same as `NODE_ENV=mainnet yarn start`
 
+#### Local CLI testing
+
+To test methods, utilize local execution with the command syntax:
+
+```
+node bin/croncat COMMAND ARGS
+```
+
+Example:
+
+```
+node bin/croncat tasks
+```
+
 ## Deploy
 
 Croncat CLI is available via npm, which auto-publishes every update to master.

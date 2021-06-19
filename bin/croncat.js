@@ -1,38 +1,40 @@
 require('dotenv').config()
 const chalk = require('chalk')
 const yargs = require('yargs')
+import { utils } from 'near-api-js'
 import getConfig from '../src/configuration'
-const { agentFunction, bootstrapAgent, runAgentTick } = require('../src/actions')
+const { agentFunction, bootstrapAgent, runAgentTick, registerAgent } = require('../src/actions')
 
-const registerAgent = {
-  command: 'register <accountId> <payableAccountId>',
+const registerAgentCmd = {
+  command: 'register <agent_account_id> <payable_account_id>',
   desc: 'Add your agent to cron known agents',
   builder: (yargs) => yargs
-    .option('accountId', {
+    .option('agent_account_id', {
       desc: 'Account to add',
       type: 'string',
       required: true
     })
-    .option('payableAccountId', {
+    .option('payable_account_id', {
       desc: 'Account that receives reward payouts',
       type: 'string',
       required: false
     }),
   handler: async options => {
-    await agentFunction('register_agent', options);
+    // await agentFunction('register_agent', options, false, undefined, 1e25);
+    await registerAgent(options.agent_account_id, options.payable_account_id);
   }
 };
 
 const updateAgent = {
-  command: 'update <accountId> <payableAccountId>',
+  command: 'update <account> <payable_account_id>',
   desc: 'Update your agent to cron known agents',
   builder: (yargs) => yargs
-    .option('accountId', {
+    .option('account', {
       desc: 'Account to add',
       type: 'string',
       required: true
     })
-    .option('payableAccountId', {
+    .option('payable_account_id', {
       desc: 'Account that receives reward payouts',
       type: 'string',
       required: false
@@ -43,24 +45,24 @@ const updateAgent = {
 };
 
 const unregisterAgent = {
-  command: 'unregister <accountId>',
+  command: 'unregister <account>',
   desc: 'Account to remove from list of active agents.',
   builder: (yargs) => yargs
-    .option('accountId', {
+    .option('account', {
       desc: 'Account to remove.',
       type: 'string',
       required: true
     }),
   handler: async options => {
-    await agentFunction('unregister_agent', options)
+    await agentFunction('unregister_agent', options, false, undefined, '0.000000000000000000000001')
   }
 };
 
 const withdrawBalance = {
-  command: 'withdraw <accountId>',
+  command: 'withdraw <account>',
   desc: 'Withdraw all rewards earned for this account',
   builder: (yargs) => yargs
-    .option('accountId', {
+    .option('account', {
       desc: 'Account that earned rewards.',
       type: 'string',
       required: true
@@ -71,10 +73,10 @@ const withdrawBalance = {
 };
 
 const status = {
-  command: 'status <accountId>',
+  command: 'status <account>',
   desc: 'Check agent status and balance for this account',
   builder: (yargs) => yargs
-    .option('accountId', {
+    .option('account', {
       desc: 'Account to check',
       type: 'string',
       required: true
@@ -89,22 +91,21 @@ const tasks = {
   desc: 'Check how many tasks are available',
   builder: (yargs) => yargs,
   handler: async options => {
-    const opts = { ...options, offset: +new Date()}
-    await agentFunction('get_tasks', opts, true);
+    await agentFunction('get_tasks', options, true);
   }
 };
 
 const go = {
-  command: 'go <accountId>',
+  command: 'go <account>',
   desc: 'Run tasks that are available, if agent is registered and has balance',
   builder: (yargs) => yargs
-    .option('accountId', {
+    .option('account', {
       desc: 'Account to check',
       type: 'string',
       required: true
     }),
   handler: async options => {
-    await bootstrapAgent(options.accountId)
+    await bootstrapAgent(options.account)
 
     // MAIN AGENT LOOP
     runAgentTick()
@@ -146,7 +147,7 @@ yargs // eslint-disable-line
     desc: 'Base url for explorer',
     type: 'string',
   })
-  .command(registerAgent)
+  .command(registerAgentCmd)
   .command(updateAgent)
   .command(unregisterAgent)
   .command(withdrawBalance)

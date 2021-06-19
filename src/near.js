@@ -28,7 +28,8 @@ class NearProvider {
     if (existingKey) {
       // console.log(`AGENT: "${accountId}", Public Key ${existingKey.publicKey}`)
       this.accountId = accountId
-      return existingKey.publicKey
+      return accountId
+      // return existingKey.publicKey
     }
 
     const keyPair = KeyPair.fromRandom('ed25519')
@@ -37,7 +38,8 @@ class NearProvider {
     this.accountId = id
     await keyStore.setKey(this.config.networkId, id, keyPair)
     console.log(`NEW AGENT CREATED: "${id}", Public Key ${publicKey}\n Requires funds to start processing tasks.`)
-    return publicKey
+    return this.accountId
+    // return publicKey
   }
 
   async getNearConnection() {
@@ -72,7 +74,7 @@ class NearProvider {
     return new Contract(
       account,
       contract_id,
-      { ...abi, sender: account.accountId }
+      { ...abi, sender: account }
     )
   }
 }

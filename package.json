@@ -1,6 +1,6 @@
 {
   "name": "croncat",
-  "version": "1.0.13",
+  "version": "1.1.0",
   "description": "cron.cat CLI and Agent Runner",
   "main": "src/index.js",
   "scripts": {
@@ -41,7 +41,7 @@
     "esm": "^3.2.25",
     "flagged-respawn": "^1.0.1",
     "is-ci": "^3.0.0",
-    "near-api-js": "^0.39.0",
+    "near-api-js": "^0.41.0",
     "regenerator-runtime": "^0.13.7",
     "update-notifier": "^5.1.0",
     "v8flags": "^3.2.0",
