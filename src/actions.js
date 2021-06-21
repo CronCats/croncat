@@ -9,6 +9,8 @@ const log = console.log
 export const env = process.env.NODE_ENV || 'development'
 export const WAIT_INTERVAL_MS = process.env.WAIT_INTERVAL_MS ? parseInt(`${process.env.WAIT_INTERVAL_MS}`) : 30000
 export const AGENT_ACCOUNT_ID = process.env.AGENT_ACCOUNT_ID || 'croncat-agent'
+export const AGENT_MIN_TASK_BALANCE = utils.format.parseNearAmount(`${process.env.AGENT_MIN_TASK_BALANCE || '1'}`) // Default: 1_000_000_000_000_000_000_000_000 (1 NEAR)
+export const AGENT_AUTO_REFILL = process.env.AGENT_AUTO_REFILL === 'true' ? true : false
 export const BASE_GAS_FEE = 300000000000000
 export const BASE_ATTACHED_PAYMENT = 0
 export const BASE_REGISTER_AGENT_FEE = utils.format.parseNearAmount('1')
@@ -88,23 +90,59 @@ export async function checkAgentBalance(agentId) {
   `)
   if (!hasEnough) {
     log(`
-    ${chalk.red('Your agent account does not have enough to pay for signing transactions.')}
-    Use the following steps:
-    ${chalk.bold.white('1. Copy your account id: ')}${chalk.underline.white(agentId || AGENT_ACCOUNT_ID)}
-    ${chalk.bold.white('2. Use the web wallet to send funds: ')}${chalk.underline.blue(Near.config.walletUrl + '/send-money')}
-    ${chalk.bold.white('3. Use NEAR CLI to send funds: ')} "near send OTHER_ACCOUNT ${AGENT_ACCOUNT_ID} ${(Big(BASE_GAS_FEE).mul(4))}"
-  `)
+      ${chalk.red('Your agent account does not have enough to pay for signing transactions.')}
+      Use the following steps:
+      ${chalk.bold.white('1. Copy your account id: ')}${chalk.underline.white(agentId || AGENT_ACCOUNT_ID)}
+      ${chalk.bold.white('2. Use the web wallet to send funds: ')}${chalk.underline.blue(Near.config.walletUrl + '/send-money')}
+      ${chalk.bold.white('3. Use NEAR CLI to send funds: ')} "near send OTHER_ACCOUNT ${AGENT_ACCOUNT_ID} ${(Big(BASE_GAS_FEE).mul(4))}"
+    `)
     process.exit(1)
   }
 }
 
+export async function checkAgentTaskBalance() {
+  const balance = await Near.getAccountBalance()
+  const notEnough = Big(balance).lt(AGENT_MIN_TASK_BALANCE)
+  if (notEnough) {
+    log(`
+      ${chalk.red('Agent is running low on funds, attempting to refill from rewards...')}
+    `)
+    await refillAgentTaskBalance()
+  }
+}
+
+export async function refillAgentTaskBalance() {
+  try {
+    const manager = await getCronManager()
+    const res = await manager.withdraw_task_balance({
+      args: {},
+      gas: BASE_GAS_FEE,
+    })
+    const balance = await Near.getAccountBalance()
+    log(`Agent Refilled, Balance: ${chalk.blue(utils.format.formatNearAmount(balance))}`)
+  } catch (e) {
+    log(`${chalk.red('No balance to withdraw.')}`)
+    process.exit(1)
+  }
+}
+
+let agentBalanceCheckIdx = 0
 export async function runAgentTick() {
   const manager = await getCronManager()
   let tasks = []
 
+  // Logic will trigger on initial run, then every 5th txn
+  // NOTE: This is really only useful if the payout account is the same as the agent
+  if (AGENT_AUTO_REFILL && agentBalanceCheckIdx === 0) {
+    await checkAgentTaskBalance()
+  }
+  agentBalanceCheckIdx++
+  if (agentBalanceCheckIdx > 5) agentBalanceCheckIdx = 0
+
   // 1. Check for tasks
-  tasks = (await manager.get_tasks()).filter(v => !!v)
-  log(`${chalk.gray(new Date().toISOString())} Current Tasks: ${chalk.blueBright(tasks.length)}`)
+  const taskRes = await manager.get_tasks()
+  tasks = taskRes[0].filter(v => !!v)
+  log(`${chalk.gray(new Date().toISOString())} Available Tasks: ${chalk.blueBright(tasks.length)}, Current Slot: ${chalk.yellow(taskRes[1])}`)
 
   // 2. Sign task and submit to chain
   if (tasks && tasks.length > 0) {
@@ -114,6 +152,7 @@ export async function runAgentTick() {
         gas: BASE_GAS_FEE,
         amount: BASE_ATTACHED_PAYMENT,
       })
+      console.log(res);
       log(`${chalk.yellowBright('TX:' + res.transaction_outcome.id)}`)
     } catch (e) {
       // if (e.type && e.type === 'FunctionCallError') console.log('runAgentTick res', e.kind.ExecutionError);
