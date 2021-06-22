@@ -7,6 +7,7 @@ import chalk from 'chalk'
 
 const log = console.log
 export const env = process.env.NODE_ENV || 'development'
+export const LOG_LEVEL = process.env.LOG_LEVEL || 'info'
 export const WAIT_INTERVAL_MS = process.env.WAIT_INTERVAL_MS ? parseInt(`${process.env.WAIT_INTERVAL_MS}`) : 30000
 export const AGENT_ACCOUNT_ID = process.env.AGENT_ACCOUNT_ID || 'croncat-agent'
 export const AGENT_MIN_TASK_BALANCE = utils.format.parseNearAmount(`${process.env.AGENT_MIN_TASK_BALANCE || '1'}`) // Default: 1_000_000_000_000_000_000_000_000 (1 NEAR)
@@ -76,7 +77,7 @@ export async function getAgent(agentId) {
     const res = await manager.get_agent({ account: agentId || agentAccount })
     return res
   } catch (ge) {
-    // console.log(ge);
+    if (LOG_LEVEL === 'debug') console.log(ge);
   }
 }
 
@@ -143,6 +144,7 @@ export async function runAgentTick() {
   const taskRes = await manager.get_tasks()
   tasks = taskRes[0].filter(v => !!v)
   log(`${chalk.gray(new Date().toISOString())} Available Tasks: ${chalk.blueBright(tasks.length)}, Current Slot: ${chalk.yellow(taskRes[1])}`)
+  if (LOG_LEVEL === 'debug') console.log('taskRes', taskRes)
 
   // 2. Sign task and submit to chain
   if (tasks && tasks.length > 0) {
@@ -152,9 +154,10 @@ export async function runAgentTick() {
         gas: BASE_GAS_FEE,
         amount: BASE_ATTACHED_PAYMENT,
       })
-      console.log(res);
-      log(`${chalk.yellowBright('TX:' + res.transaction_outcome.id)}`)
+      if (LOG_LEVEL === 'debug') console.log(res)
+      // log(`${chalk.yellowBright('TX:' + res.transaction_outcome.id)}`)
     } catch (e) {
+      if (LOG_LEVEL === 'debug') console.log(e)
       // if (e.type && e.type === 'FunctionCallError') console.log('runAgentTick res', e.kind.ExecutionError);
     }
   }
@@ -168,7 +171,7 @@ export async function agentFunction(method, args, isView, gas = BASE_GAS_FEE, am
   const manager = await getCronManager(account)
   const params = method === 'unregister' ? {} : removeUneededArgs(args)
   let res
-  // console.log(account, isView, manager[method], params, gas, amount);
+  if (LOG_LEVEL === 'debug') console.log(account, isView, manager[method], params, gas, amount);
 
   try {
     res = isView
