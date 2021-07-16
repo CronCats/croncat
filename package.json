@@ -1,6 +1,6 @@
 {
   "name": "croncat",
-  "version": "1.1.3",
+  "version": "1.2.0",
   "description": "cron.cat CLI and Agent Runner",
   "main": "src/index.js",
   "scripts": {

@@ -34,13 +34,18 @@ export const Near = new NearProvider({
 let cronManager = null
 let agentAccount = null
 
-export async function connect() {
-  await Near.getNearConnection()
+export async function connect(options) {
+  try {
+    await Near.getNearConnection(options)
+  } catch (e) {
+    log(`${chalk.red('NEAR Connection Failed')}`)
+    process.exit(1)
+  }
 }
 
-export async function getCronManager(accountId) {
+export async function getCronManager(accountId, options) {
   if (cronManager) return cronManager
-  await connect()
+  await connect(options)
   const _n = Near
   const abi = contractAbi.abis.manager
   const contractId = contractAbi[env].manager
@@ -50,9 +55,9 @@ export async function getCronManager(accountId) {
 }
 
 // NOTE: Optional "payable_account_id" here
-export async function registerAgent(agentId, payable_account_id) {
+export async function registerAgent(agentId, payable_account_id, options) {
   const account = agentId || AGENT_ACCOUNT_ID
-  const manager = await getCronManager(account)
+  const manager = await getCronManager(account, options)
 
   try {
     const res = await manager.register_agent({
@@ -71,8 +76,8 @@ export async function registerAgent(agentId, payable_account_id) {
   }
 }
 
-export async function getAgent(agentId) {
-  const manager = await getCronManager()
+export async function getAgent(agentId, options) {
+  const manager = await getCronManager(null, options)
   try {
     const res = await manager.get_agent({ account: agentId || agentAccount })
     return res
@@ -101,20 +106,20 @@ export async function checkAgentBalance(agentId) {
   }
 }
 
-export async function checkAgentTaskBalance() {
+export async function checkAgentTaskBalance(options) {
   const balance = await Near.getAccountBalance()
   const notEnough = Big(balance).lt(AGENT_MIN_TASK_BALANCE)
   if (notEnough) {
     log(`
       ${chalk.red('Agent is running low on funds, attempting to refill from rewards...')}
     `)
-    await refillAgentTaskBalance()
+    await refillAgentTaskBalance(options)
   }
 }
 
-export async function refillAgentTaskBalance() {
+export async function refillAgentTaskBalance(options) {
   try {
-    const manager = await getCronManager()
+    const manager = await getCronManager(null, options)
     const res = await manager.withdraw_task_balance({
       args: {},
       gas: BASE_GAS_FEE,
@@ -128,20 +133,28 @@ export async function refillAgentTaskBalance() {
 }
 
 let agentBalanceCheckIdx = 0
-export async function runAgentTick() {
-  const manager = await getCronManager()
+export async function runAgentTick(options) {
+  const manager = await getCronManager(null, options)
   let tasks = []
 
   // Logic will trigger on initial run, then every 5th txn
   // NOTE: This is really only useful if the payout account is the same as the agent
   if (AGENT_AUTO_REFILL && agentBalanceCheckIdx === 0) {
-    await checkAgentTaskBalance()
+    await checkAgentTaskBalance(options)
   }
   agentBalanceCheckIdx++
   if (agentBalanceCheckIdx > 5) agentBalanceCheckIdx = 0
 
   // 1. Check for tasks
-  const taskRes = await manager.get_tasks()
+  let taskRes
+  try {
+    taskRes = await manager.get_tasks()
+  } catch (e) {
+    log(`${chalk.red('Connection interrupted, trying again soon...')}`)
+    // Wait, then try loop again.
+    setTimeout(() => { runAgentTick() }, WAIT_INTERVAL_MS)
+    return;
+  }
   tasks = taskRes[0].filter(v => !!v)
   log(`${chalk.gray(new Date().toISOString())} Available Tasks: ${chalk.blueBright(tasks.length)}, Current Slot: ${chalk.yellow(taskRes[1])}`)
   if (LOG_LEVEL === 'debug') console.log('taskRes', taskRes)
@@ -168,7 +181,8 @@ export async function runAgentTick() {
 
 export async function agentFunction(method, args, isView, gas = BASE_GAS_FEE, amount = BASE_ATTACHED_PAYMENT) {
   const account = args.account || args.agent_account_id || AGENT_ACCOUNT_ID
-  const manager = await getCronManager(account)
+  console.log("args", args);
+  const manager = await getCronManager(account, args)
   const params = method === 'unregister' ? {} : removeUneededArgs(args)
   let res
   if (LOG_LEVEL === 'debug') console.log(account, isView, manager[method], params, gas, amount);
@@ -219,8 +233,8 @@ export async function agentFunction(method, args, isView, gas = BASE_GAS_FEE, am
   }
 }
 
-export async function bootstrapAgent(agentId) {
-  await connect()
+export async function bootstrapAgent(agentId, options) {
+  await connect(options)
 
   // 1. Check for local signing keys, if none - generate new and halt until funded
   agentAccount = `${await Near.getAccountCredentials(agentId || AGENT_ACCOUNT_ID)}`

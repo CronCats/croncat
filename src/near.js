@@ -42,10 +42,17 @@ class NearProvider {
     // return publicKey
   }
 
-  async getNearConnection() {
+  async getNearConnection(options = {}) {
     if (this.client) return this.client
     const keyStore = new keyStores.UnencryptedFileSystemKeyStore(credentialsBasePath)
-    this.client = await connect(Object.assign({ deps: { keyStore } }, this.config))
+    let nodeUrl = options.nodeUrl
+    const config = options.networkId ? getConfig(options.networkId) : this.config
+    if (nodeUrl && options.networkId !== config.networkId) config.nodeUrl = nodeUrl
+    try {
+      this.client = await connect(Object.assign({ deps: { keyStore } }, config))
+    } catch (e) {
+      throw 'NEAR Connection Failed'
+    }
     return this.client
   }
 
