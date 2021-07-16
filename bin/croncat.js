@@ -21,7 +21,7 @@ const registerAgentCmd = {
     }),
   handler: async options => {
     // await agentFunction('register_agent', options, false, undefined, 1e25);
-    await registerAgent(options.agent_account_id, options.payable_account_id);
+    await registerAgent(options.agent_account_id, options.payable_account_id, options);
   }
 };
 
@@ -105,10 +105,10 @@ const go = {
       required: true
     }),
   handler: async options => {
-    await bootstrapAgent(options.account)
+    await bootstrapAgent(options.account, options)
 
     // MAIN AGENT LOOP
-    runAgentTick()
+    runAgentTick(options)
   }
 };
 
