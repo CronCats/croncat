@@ -181,7 +181,6 @@ export async function runAgentTick(options) {
 
 export async function agentFunction(method, args, isView, gas = BASE_GAS_FEE, amount = BASE_ATTACHED_PAYMENT) {
   const account = args.account || args.agent_account_id || AGENT_ACCOUNT_ID
-  console.log("args", args);
   const manager = await getCronManager(account, args)
   const params = method === 'unregister' ? {} : removeUneededArgs(args)
   let res
