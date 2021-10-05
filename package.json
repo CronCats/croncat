@@ -34,6 +34,7 @@
   },
   "homepage": "https://github.com/Cron-Near/croncat#readme",
   "dependencies": {
+    "axios": "^0.22.0",
     "big.js": "^6.0.3",
     "chalk": "^4.1.0",
     "core-js": "^3.10.1",

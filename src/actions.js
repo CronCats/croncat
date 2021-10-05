@@ -4,6 +4,7 @@ import { utils } from 'near-api-js'
 import Big from 'big.js'
 import NearProvider from './near'
 import chalk from 'chalk'
+import slack from './slack'
 
 const log = console.log
 export const env = process.env.NODE_ENV || 'development'
@@ -15,6 +16,16 @@ export const AGENT_AUTO_REFILL = process.env.AGENT_AUTO_REFILL === 'true' ? true
 export const BASE_GAS_FEE = 300000000000000
 export const BASE_ATTACHED_PAYMENT = 0
 export const BASE_REGISTER_AGENT_FEE = utils.format.parseNearAmount('1')
+let agentSettings = {}
+let croncatSettings = {}
+
+const slackProvider = new slack({ 'slackToken': process.env.SLACK_TOKEN })
+const notifySlack = text => {
+  if (process.env.SLACK_TOKEN) return slackProvider.send({
+    slackChannel: process.env.SLACK_CHANNEL,
+    text
+  })
+}
 
 function removeUneededArgs(obj) {
   const allowed = ['agent_account_id', 'payable_account_id', 'account', 'offset', 'accountId', 'payableAccountId']
@@ -86,6 +97,33 @@ export async function getAgent(agentId, options) {
   }
 }
 
+export async function getCroncatInfo(options) {
+  const manager = await getCronManager(null, options)
+  try {
+    const res = await manager.get_info()
+
+    return {
+      paused: res[0],
+      owner_id: res[1],
+      agent_active_queue: res[2],
+      agent_pending_queue: res[3],
+      agent_task_ratio: res[4],
+      agents_eject_threshold: res[5],
+      slots: res[6],
+      tasks: res[7],
+      available_balance: res[8],
+      staked_balance: res[9],
+      agent_fee: res[10],
+      gas_price: res[11],
+      proxy_callback_gas: res[12],
+      slot_granularity: res[13],
+      agent_storage_usage: res[14],
+    }
+  } catch (ge) {
+    if (LOG_LEVEL === 'debug') console.log(ge);
+  }
+}
+
 export async function checkAgentBalance(agentId) {
   const balance = await Near.getAccountBalance()
   const formattedBalance = utils.format.formatNearAmount(balance)
@@ -126,8 +164,10 @@ export async function refillAgentTaskBalance(options) {
     })
     const balance = await Near.getAccountBalance()
     log(`Agent Refilled, Balance: ${chalk.blue(utils.format.formatNearAmount(balance))}`)
+    notifySlack(`Agent Refilled, Balance: *${utils.format.formatNearAmount(balance)}*`)
   } catch (e) {
     log(`${chalk.red('No balance to withdraw.')}`)
+    notifySlack(`*Attention!* No balance to withdraw.`)
     process.exit(1)
   }
 }
@@ -135,6 +175,8 @@ export async function refillAgentTaskBalance(options) {
 let agentBalanceCheckIdx = 0
 export async function runAgentTick(options) {
   const manager = await getCronManager(null, options)
+  const agentId = options.accountId || options.account_id
+  let skipThisIteration = false
   let tasks = []
 
   // Logic will trigger on initial run, then every 5th txn
@@ -148,7 +190,8 @@ export async function runAgentTick(options) {
   // 1. Check for tasks
   let taskRes
   try {
-    taskRes = await manager.get_tasks()
+    // Only get task hashes my agent can execute
+    taskRes = await manager.get_tasks({ account_id: agentId })
   } catch (e) {
     log(`${chalk.red('Connection interrupted, trying again soon...')}`)
     // Wait, then try loop again.
@@ -158,9 +201,29 @@ export async function runAgentTick(options) {
   tasks = taskRes[0].filter(v => !!v)
   log(`${chalk.gray(new Date().toISOString())} Available Tasks: ${chalk.blueBright(tasks.length)}, Current Slot: ${chalk.yellow(taskRes[1])}`)
   if (LOG_LEVEL === 'debug') console.log('taskRes', taskRes)
+  if (!tasks || tasks.length <= 0) skipThisIteration = true
+
+  agentSettings = await getAgent(agentId)
+  // Check agent is active & able to run tasks
+  if (agentSettings.status !== 'Active') {
+    log(`Agent Status: ${chalk.white('Pending')}`)
+    skipThisIteration = true
+  }
+  
+  // Use agentSettings to check how many executions are allowed per slots
+  // Also check if the current slot is not the same as this slot, so we can skip and attempt if there is new.
+  // slot_execs: [ 65985600, 1 ]
+  // taskRes: [ [], '65985600' ]
+  if (agentSettings.slot_execs[0] <= parseInt(taskRes[1])) {
+    const slotTotalTasks = Math.floor(croncatSettings.agent_task_ratio[0] / croncatSettings.agent_task_ratio[1])
+    if (agentSettings.slot_execs[1] >= slotTotalTasks) {
+      log(`Agent Slot Task Total: ${chalk.white(agentSettings.slot_execs[1])}`)
+      skipThisIteration = true
+    }
+  }
 
   // 2. Sign task and submit to chain
-  if (tasks && tasks.length > 0) {
+  if (!skipThisIteration) {
     try {
       const res = await manager.proxy_call({
         args: {},
@@ -176,7 +239,9 @@ export async function runAgentTick(options) {
   }
 
   // Wait, then loop again.
-  setTimeout(() => { runAgentTick() }, WAIT_INTERVAL_MS)
+  // Run immediately if executed tasks remain for this slot, then sleep until next slot.
+  const nextAttemptInterval = skipThisIteration ? WAIT_INTERVAL_MS : 100
+  setTimeout(() => { runAgentTick() }, nextAttemptInterval)
 }
 
 export async function agentFunction(method, args, isView, gas = BASE_GAS_FEE, amount = BASE_ATTACHED_PAYMENT) {
@@ -228,6 +293,8 @@ export async function agentFunction(method, args, isView, gas = BASE_GAS_FEE, am
     if (!balance || balance < 1e25) {
       log(`${chalk.bold.red('Attention!')}: ${chalk.redBright('Please add more funds to your account to continue sending transactions')}`)
       log(`${chalk.bold.red('Current Account Balance:')}: ${chalk.redBright(utils.format.formatNearAmount(balance))}\n`)
+
+      notifySlack(`*Attention!* Please add more funds to your account to continue sending transactions.\nCurrent Account Balance: *${utils.format.formatNearAmount(balance)}*`)
     }
   }
 }
@@ -243,12 +310,17 @@ export async function bootstrapAgent(agentId, options) {
 
   // 3. Check if agent is registered, if not register immediately before proceeding
   try {
-    const hasAgent = await getAgent(agentId)
-    if (!hasAgent) {
+    agentSettings = await getAgent(agentId)
+    if (!agentSettings) {
       log(`No Agent: ${chalk.red('Please register')}`)
       process.exit(0);
     }
     log(`Verified Agent: ${chalk.white(agentId || AGENT_ACCOUNT_ID)}`)
+    croncatSettings = await getCroncatInfo(options)
+    if (!croncatSettings) {
+      log(`No Croncat Deployed At this Network`)
+      process.exit(0);
+    }
   } catch (e) {
     log(`No Agent: ${chalk.gray('Please register')}`)
     // await registerAgent(agentId)

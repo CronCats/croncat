@@ -73,10 +73,10 @@ const withdrawBalance = {
 };
 
 const status = {
-  command: 'status <account>',
+  command: 'status <account_id>',
   desc: 'Check agent status and balance for this account',
   builder: (yargs) => yargs
-    .option('account', {
+    .option('account_id', {
       desc: 'Account to check',
       type: 'string',
       required: true
