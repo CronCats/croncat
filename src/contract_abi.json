@@ -1,6 +1,6 @@
 {
   "development": {
-    "manager": "manager_v1.cron.testnet"
+    "manager": "manager_v1.ion.testnet"
   },
   "production": {
     "manager": "manager_v1.cron.near"

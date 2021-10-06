@@ -15,7 +15,7 @@ export const AGENT_MIN_TASK_BALANCE = utils.format.parseNearAmount(`${process.en
 export const AGENT_AUTO_REFILL = process.env.AGENT_AUTO_REFILL === 'true' ? true : false
 export const BASE_GAS_FEE = 300000000000000
 export const BASE_ATTACHED_PAYMENT = 0
-export const BASE_REGISTER_AGENT_FEE = utils.format.parseNearAmount('1')
+export const BASE_REGISTER_AGENT_FEE = '4840000000000000000000'
 let agentSettings = {}
 let croncatSettings = {}
 
@@ -28,7 +28,7 @@ const notifySlack = text => {
 }
 
 function removeUneededArgs(obj) {
-  const allowed = ['agent_account_id', 'payable_account_id', 'account', 'offset', 'accountId', 'payableAccountId']
+  const allowed = ['agent_account_id', 'payable_account_id', 'account', 'offset', 'accountId', 'account_id', 'payableAccountId']
   const fin = {}
 
   Object.keys(obj).forEach(k => {
@@ -72,7 +72,7 @@ export async function registerAgent(agentId, payable_account_id, options) {
 
   try {
     const res = await manager.register_agent({
-      args: { agent_account_id: account, payable_account_id },
+      args: { payable_account_id },
       gas: BASE_GAS_FEE,
       amount: BASE_REGISTER_AGENT_FEE,
     })
@@ -90,7 +90,7 @@ export async function registerAgent(agentId, payable_account_id, options) {
 export async function getAgent(agentId, options) {
   const manager = await getCronManager(null, options)
   try {
-    const res = await manager.get_agent({ account: agentId || agentAccount })
+    const res = await manager.get_agent({ account_id: agentId || agentAccount })
     return res
   } catch (ge) {
     if (LOG_LEVEL === 'debug') console.log(ge);
@@ -173,7 +173,7 @@ export async function refillAgentTaskBalance(options) {
 }
 
 let agentBalanceCheckIdx = 0
-export async function runAgentTick(options) {
+export async function runAgentTick(options = {}) {
   const manager = await getCronManager(null, options)
   const agentId = options.accountId || options.account_id
   let skipThisIteration = false
@@ -209,14 +209,27 @@ export async function runAgentTick(options) {
     log(`Agent Status: ${chalk.white('Pending')}`)
     skipThisIteration = true
   }
-  
+
   // Use agentSettings to check how many executions are allowed per slots
   // Also check if the current slot is not the same as this slot, so we can skip and attempt if there is new.
   // slot_execs: [ 65985600, 1 ]
   // taskRes: [ [], '65985600' ]
-  if (agentSettings.slot_execs[0] <= parseInt(taskRes[1])) {
-    const slotTotalTasks = Math.floor(croncatSettings.agent_task_ratio[0] / croncatSettings.agent_task_ratio[1])
-    if (agentSettings.slot_execs[1] >= slotTotalTasks) {
+  const slotTotalTasks = tasks.length
+  if (!skipThisIteration) {
+    // IF: the current slot is greater than exec slot, start over from 0
+    // IF: the current slot is equal to exec slot, check that we haven't exceeded available tasks
+    if (
+      agentSettings.slot_execs[0] <= parseInt(taskRes[1]) &&
+      slotTotalTasks === 0 &&
+      agentSettings.slot_execs[0] !== 0
+    ) {
+      log(`Agent Slot Task Total: ${chalk.white(agentSettings.slot_execs[1])}`)
+      skipThisIteration = true
+    } else if (
+      agentSettings.slot_execs[0] === parseInt(taskRes[1]) &&
+      agentSettings.slot_execs[1] >= slotTotalTasks &&
+      agentSettings.slot_execs[0] !== 0
+    ) {
       log(`Agent Slot Task Total: ${chalk.white(agentSettings.slot_execs[1])}`)
       skipThisIteration = true
     }
@@ -241,11 +254,11 @@ export async function runAgentTick(options) {
   // Wait, then loop again.
   // Run immediately if executed tasks remain for this slot, then sleep until next slot.
   const nextAttemptInterval = skipThisIteration ? WAIT_INTERVAL_MS : 100
-  setTimeout(() => { runAgentTick() }, nextAttemptInterval)
+  setTimeout(() => { runAgentTick(options) }, nextAttemptInterval)
 }
 
 export async function agentFunction(method, args, isView, gas = BASE_GAS_FEE, amount = BASE_ATTACHED_PAYMENT) {
-  const account = args.account || args.agent_account_id || AGENT_ACCOUNT_ID
+  const account = args.account || args.account_id || args.agent_account_id || AGENT_ACCOUNT_ID
   const manager = await getCronManager(account, args)
   const params = method === 'unregister' ? {} : removeUneededArgs(args)
   let res
@@ -315,7 +328,7 @@ export async function bootstrapAgent(agentId, options) {
       log(`No Agent: ${chalk.red('Please register')}`)
       process.exit(0);
     }
-    log(`Verified Agent: ${chalk.white(agentId || AGENT_ACCOUNT_ID)}`)
+    log(`Registered Agent: ${chalk.white(agentId || AGENT_ACCOUNT_ID)}`)
     croncatSettings = await getCroncatInfo(options)
     if (!croncatSettings) {
       log(`No Croncat Deployed At this Network`)
