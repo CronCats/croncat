@@ -1,20 +1,22 @@
 {
   "development": {
-    "manager": "cron.in.testnet"
+    "manager": "manager_v1.ion.testnet"
   },
   "production": {
-    "manager": "manager.cron.near"
+    "manager": "manager_v1.cron.near"
   },
   "abis": {
     "manager": {
       "viewMethods": [
+        "version",
+        "get_info",
+        "get_all_tasks",
         "get_tasks",
         "get_task",
         "get_agent"
       ],
       "changeMethods": [
         "create_task",
-        "update_task",
         "remove_task",
         "proxy_call",
         "register_agent",

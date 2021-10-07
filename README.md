@@ -64,6 +64,41 @@ alias croncat="docker run --rm -it croncat ./croncat-cli"
 ```
 This will allow you to run the commands as seen below.
 
+## Customization & Environment Variables
+
+Sometimes you want to run croncat with notifications and uptime monitoring, or configure the different settings.
+To do this, you need to run the following command:
+
+```bash
+cp .env.example .env
+```
+
+You can then configure the following:
+
+```bash
+NODE_ENV=production
+NEAR_ENV=mainnet
+LOG_LEVEL=info
+
+# The account registered as an agent
+AGENT_ACCOUNT_ID=YOUR_ACCOUNT.near
+# the NEAR amount to trigger a notification (example here: 1 Near)
+AGENT_MIN_TASK_BALANCE=1
+# When balance is empty, will auto-withdraw rewards to cover signing txns, withdraws the payout account.
+AGENT_AUTO_REFILL=true
+
+# The interval to wait between checking for tasks. Good intervals are below 60 seconds and above 10 seconds.
+WAIT_INTERVAL_MS=450000
+
+## Notify slack when events happen
+SLACK_TOKEN=YOUR_WEBHOOK_TOKEN
+SLACK_CHANNEL=general
+
+# If you have an external heartbeat service that just needs a ping (GET request)
+HEARTBEAT=false
+HEARTBEAT_URL=GET_REQUEST_URL_FOR_STATUS_SERVICE
+```
+
 ## Development & Local Testing
 
 To develop, you will need to:
