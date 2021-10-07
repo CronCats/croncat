@@ -1,6 +1,7 @@
 require('dotenv').config()
 const contractAbi = require('../src/contract_abi.json')
 import { utils } from 'near-api-js'
+import axios from 'axios'
 import Big from 'big.js'
 import NearProvider from './near'
 import chalk from 'chalk'
@@ -25,6 +26,17 @@ const notifySlack = text => {
     slackChannel: process.env.SLACK_CHANNEL,
     text
   })
+}
+
+const pingHeartbeat = async () => {
+  if (process.env.HEARTBEAT === 'true') {
+    try {
+      await axios.get(process.env.HEARTBEAT_URL)
+    } catch (e) {
+      // nopes
+    }
+  }
+  return Promise.resolve()
 }
 
 function removeUneededArgs(obj) {
@@ -178,11 +190,15 @@ export async function runAgentTick(options = {}) {
   const agentId = options.accountId || options.account_id
   let skipThisIteration = false
   let tasks = []
+  let previousAgentSettings = {...agentSettings}
 
   // Logic will trigger on initial run, then every 5th txn
   // NOTE: This is really only useful if the payout account is the same as the agent
   if (AGENT_AUTO_REFILL && agentBalanceCheckIdx === 0) {
     await checkAgentTaskBalance(options)
+
+    // Always ping heartbeat here, checks prefs above
+    await pingHeartbeat()
   }
   agentBalanceCheckIdx++
   if (agentBalanceCheckIdx > 5) agentBalanceCheckIdx = 0
@@ -195,7 +211,7 @@ export async function runAgentTick(options = {}) {
   } catch (e) {
     log(`${chalk.red('Connection interrupted, trying again soon...')}`)
     // Wait, then try loop again.
-    setTimeout(() => { runAgentTick() }, WAIT_INTERVAL_MS)
+    setTimeout(() => { runAgentTick(options) }, WAIT_INTERVAL_MS)
     return;
   }
   tasks = taskRes[0].filter(v => !!v)
@@ -203,11 +219,24 @@ export async function runAgentTick(options = {}) {
   if (LOG_LEVEL === 'debug') console.log('taskRes', taskRes)
   if (!tasks || tasks.length <= 0) skipThisIteration = true
 
-  agentSettings = await getAgent(agentId)
+  try {
+    agentSettings = await getAgent(agentId)
+  } catch (ae) {
+    agentSettings = {}
+  }
   // Check agent is active & able to run tasks
   if (agentSettings.status !== 'Active') {
     log(`Agent Status: ${chalk.white('Pending')}`)
     skipThisIteration = true
+  }
+
+  // Alert if agent changes status:
+  if (previousAgentSettings.status !== agentSettings.status) {
+    notifySlack(`*Agent Status Update:*\nYour agent is now a status of *${agentSettings.status}*`)
+
+    // TODO: At this point we could check if we need to re-register the agent if enough remaining balance, and status went from active to pending or none.
+    // NOTE: For now, stopping the process if no agent settings.
+    if (!agentSettings.status) process.exit(1)
   }
 
   // Use agentSettings to check how many executions are allowed per slots
@@ -223,14 +252,14 @@ export async function runAgentTick(options = {}) {
       slotTotalTasks === 0 &&
       agentSettings.slot_execs[0] !== 0
     ) {
-      log(`Agent Slot Task Total: ${chalk.white(agentSettings.slot_execs[1])}`)
+      if (LOG_LEVEL === 'debug') log(`Agent Slot Task Total: ${chalk.white(agentSettings.slot_execs[1])}`)
       skipThisIteration = true
     } else if (
       agentSettings.slot_execs[0] === parseInt(taskRes[1]) &&
       agentSettings.slot_execs[1] >= slotTotalTasks &&
       agentSettings.slot_execs[0] !== 0
     ) {
-      log(`Agent Slot Task Total: ${chalk.white(agentSettings.slot_execs[1])}`)
+      if (LOG_LEVEL === 'debug') log(`Agent Slot Task Total: ${chalk.white(agentSettings.slot_execs[1])}`)
       skipThisIteration = true
     }
   }
