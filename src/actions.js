@@ -239,28 +239,13 @@ export async function runAgentTick(options = {}) {
     if (!agentSettings.status) process.exit(1)
   }
 
-  // Use agentSettings to check how many executions are allowed per slots
-  // Also check if the current slot is not the same as this slot, so we can skip and attempt if there is new.
-  // slot_execs: [ 65985600, 1 ]
-  // taskRes: [ [], '65985600' ]
-  const slotTotalTasks = tasks.length
-  if (!skipThisIteration) {
-    // IF: the current slot is greater than exec slot, start over from 0
-    // IF: the current slot is equal to exec slot, check that we haven't exceeded available tasks
-    if (
-      agentSettings.slot_execs[0] <= parseInt(taskRes[1]) &&
-      slotTotalTasks === 0 &&
-      agentSettings.slot_execs[0] !== 0
-    ) {
-      if (LOG_LEVEL === 'debug') log(`Agent Slot Task Total: ${chalk.white(agentSettings.slot_execs[1])}`)
-      skipThisIteration = true
-    } else if (
-      agentSettings.slot_execs[0] === parseInt(taskRes[1]) &&
-      agentSettings.slot_execs[1] >= slotTotalTasks &&
-      agentSettings.slot_execs[0] !== 0
-    ) {
-      if (LOG_LEVEL === 'debug') log(`Agent Slot Task Total: ${chalk.white(agentSettings.slot_execs[1])}`)
-      skipThisIteration = true
+  // Use agentSettings to check if the maximum missed slots have happened, stop and notify!
+  let last_missed_slot = agentSettings.last_missed_slot;
+  if (last_missed_slot !== 0) {
+    if (last_missed_slot > (parseInt(taskRes[1]) + (croncatSettings.agents_eject_threshold * croncatSettings.slot_granularity))) {
+      log(`${chalk.red('Agent has been ejected! Too many slots missed!')}`)
+      await notifySlack(`*Agent has been ejected! Too many slots missed!*`)
+      process.exit(1);
     }
   }
 
@@ -276,7 +261,13 @@ export async function runAgentTick(options = {}) {
       // log(`${chalk.yellowBright('TX:' + res.transaction_outcome.id)}`)
     } catch (e) {
       if (LOG_LEVEL === 'debug') console.log(e)
-      // if (e.type && e.type === 'FunctionCallError') console.log('runAgentTick res', e.kind.ExecutionError);
+      // Check if the agent should slow down to wait for next slot opportunity
+      if (e.type && e.type === 'FunctionCallError') {
+        // Check if we need to skip iteration based on max calls in this slot, so we dont waste more fees.
+        if (e.kind.ExecutionError.search('Agent has exceeded execution for this slot') > -1) {
+          skipThisIteration = true
+        }
+      }
     }
   }
 
