@@ -189,7 +189,7 @@ export async function runAgentTick(options = {}) {
   const manager = await getCronManager(null, options)
   const agentId = options.accountId || options.account_id
   let skipThisIteration = false
-  let tasks = []
+  let totalTasks = 0
   let previousAgentSettings = {...agentSettings}
 
   // Logic will trigger on initial run, then every 5th txn
@@ -207,17 +207,19 @@ export async function runAgentTick(options = {}) {
   let taskRes
   try {
     // Only get task hashes my agent can execute
-    taskRes = await manager.get_tasks({ account_id: agentId })
+    taskRes = await manager.get_agent_tasks({ account_id: agentId })
   } catch (e) {
     log(`${chalk.red('Connection interrupted, trying again soon...')}`)
     // Wait, then try loop again.
     setTimeout(() => { runAgentTick(options) }, WAIT_INTERVAL_MS)
     return;
   }
-  tasks = taskRes[0].filter(v => !!v)
-  log(`${chalk.gray(new Date().toISOString())} Available Tasks: ${chalk.blueBright(tasks.length)}, Current Slot: ${chalk.yellow(taskRes[1])}`)
+  totalTasks = parseInt(taskRes[0])
+  if (taskRes[1] === '0') log(`${chalk.gray(new Date().toISOString())} Available Tasks: ${chalk.red(totalTasks)}, Current Slot: ${chalk.red('Paused')}`)
+  else log(`${chalk.gray(new Date().toISOString())} Available Tasks: ${chalk.blueBright(totalTasks)}, Current Slot: ${chalk.yellow(taskRes[1])}`)
+
   if (LOG_LEVEL === 'debug') console.log('taskRes', taskRes)
-  if (!tasks || tasks.length <= 0) skipThisIteration = true
+  if (totalTasks <= 0) skipThisIteration = true
 
   try {
     agentSettings = await getAgent(agentId)
@@ -226,13 +228,14 @@ export async function runAgentTick(options = {}) {
   }
   // Check agent is active & able to run tasks
   if (agentSettings.status !== 'Active') {
-    log(`Agent Status: ${chalk.white('Pending')}`)
+    log(`Agent Status: ${chalk.white(agentSettings.status)}`)
     skipThisIteration = true
   }
 
   // Alert if agent changes status:
   if (previousAgentSettings.status !== agentSettings.status) {
     notifySlack(`*Agent Status Update:*\nYour agent is now a status of *${agentSettings.status}*`)
+    log(`Agent Status: ${chalk.white(agentSettings.status)}`)
 
     // TODO: At this point we could check if we need to re-register the agent if enough remaining balance, and status went from active to pending or none.
     // NOTE: For now, stopping the process if no agent settings.

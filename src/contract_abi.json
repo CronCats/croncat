@@ -3,16 +3,17 @@
     "manager": "manager_v1.cron.testnet"
   },
   "production": {
-    "manager": "manager_v1.cron.near"
+    "manager": "manager_v1.croncat.near"
   },
   "abis": {
     "manager": {
       "viewMethods": [
         "version",
         "get_info",
-        "get_all_tasks",
         "get_tasks",
+        "get_slot_tasks",
         "get_task",
+        "get_agent_tasks",
         "get_agent"
       ],
       "changeMethods": [

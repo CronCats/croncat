@@ -1,6 +1,6 @@
 {
   "name": "croncat",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "description": "cron.cat CLI and Agent Runner",
   "main": "src/index.js",
   "scripts": {
@@ -24,6 +24,7 @@
   },
   "keywords": [
     "Cron",
+    "Croncat",
     "NEAR",
     "Blockchain"
   ],

@@ -18,13 +18,13 @@ For a list of up-to-date commands, run `croncat --help` in your terminal.
 Usage: croncat <command> [options]
 
 Commands:
-  croncat register <accountId> <payableAccountId>  Add your agent to cron known agents
-  croncat update <accountId> <payableAccountId>    Update your agent to cron known agents
-  croncat unregister <accountId>                   Account to remove from list of active agents.
-  croncat withdraw <accountId>                     Withdraw all rewards earned for this account
-  croncat status <accountId>                       Check agent status and balance for this account
-  croncat tasks                                    Check how many tasks are available
-  croncat go <accountId>                           Run tasks that are available, if agent is registered and has balance
+  croncat register <account_id> <payable_account_id>  Add your agent to cron known agents
+  croncat update <account_id> <payable_account_id>    Update your agent to cron known agents
+  croncat unregister <account_id>                     Account to remove from list of active agents.
+  croncat withdraw <account_id>                       Withdraw all rewards earned for this account
+  croncat status <account_id>                         Check agent status and balance for this account
+  croncat tasks                                       Check how many tasks are currently available
+  croncat go <account_id>                             Run tasks that are available, if agent is registered and has balance
 ```
 
 ## Docker Installation & Setup
@@ -118,10 +118,14 @@ To test methods, utilize local execution with the command syntax:
 node bin/croncat COMMAND ARGS
 ```
 
-Example:
+Examples:
 
 ```
 node bin/croncat tasks
+node bin/croncat register agent.in.testnet agent.in.testnet
+node bin/croncat status agent.in.testnet
+node bin/croncat go agent.in.testnet
+node bin/croncat withdraw agent.in.testnet
 ```
 
 ## Deploy
@@ -132,7 +136,9 @@ For deploying docker, simply do the following commands:
 
 ```bash
 npm run build:cli
+npm publish
 npm run docker:build
-docker tag croncat/agent:latest
+docker tag croncat/agent:latest croncat/agent:1.4.1
 docker push croncat/agent:latest
+docker push croncat/agent:1.4.1
 ```
