@@ -227,7 +227,7 @@ export async function runAgentTick(options = {}) {
     agentSettings = {}
   }
   // Check agent is active & able to run tasks
-  if (agentSettings.status !== 'Active') {
+  if (!agentSettings || !agentSettings.status || agentSettings.status !== 'Active') {
     log(`Agent Status: ${chalk.white(agentSettings.status)}`)
     skipThisIteration = true
   }
@@ -326,7 +326,7 @@ export async function agentFunction(method, args, isView, gas = BASE_GAS_FEE, am
     const balance = await Near.getAccountBalance()
 
     // ALERT USER is their balance is lower than they should be
-    if (!balance || balance < 1e25) {
+    if (!balance || balance < 3e24) {
       log(`${chalk.bold.red('Attention!')}: ${chalk.redBright('Please add more funds to your account to continue sending transactions')}`)
       log(`${chalk.bold.red('Current Account Balance:')}: ${chalk.redBright(utils.format.formatNearAmount(balance))}\n`)
 

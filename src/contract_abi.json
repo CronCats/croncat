@@ -2,7 +2,19 @@
   "development": {
     "manager": "manager_v1.cron.testnet"
   },
+  "testnet": {
+    "manager": "manager_v1.cron.testnet"
+  },
+  "guildnet": {
+    "manager": "manager_v1.croncat.guildnet"
+  },
+  "betanet": {
+    "manager": "manager_v1.croncat.betanet"
+  },
   "production": {
+    "manager": "manager_v1.croncat.near"
+  },
+  "mainnet": {
     "manager": "manager_v1.croncat.near"
   },
   "abis": {
