@@ -216,7 +216,7 @@ export async function runAgentTick(options = {}) {
   }
   totalTasks = parseInt(taskRes[0])
   if (taskRes[1] === '0') log(`${chalk.gray(new Date().toISOString())} Available Tasks: ${chalk.red(totalTasks)}, Current Slot: ${chalk.red('Paused')}`)
-  else log(`${chalk.gray(new Date().toISOString())} Available Tasks: ${chalk.blueBright(totalTasks)}, Current Slot: ${chalk.yellow(taskRes[1])}`)
+  else log(`${chalk.gray(new Date().toISOString())} ${chalk.gray('[' + options.networkId.toUpperCase() + ']')} Available Tasks: ${chalk.blueBright(totalTasks)}, Current Slot: ${chalk.yellow(taskRes[1])}`)
 
   if (LOG_LEVEL === 'debug') console.log('taskRes', taskRes)
   if (totalTasks <= 0) skipThisIteration = true
