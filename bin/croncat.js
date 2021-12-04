@@ -5,8 +5,10 @@ import { utils } from 'near-api-js'
 import getConfig from '../src/configuration'
 const { agentFunction, bootstrapAgent, runAgentTick, registerAgent } = require('../src/actions')
 
+const AGENT_ACCOUNT_ID = process.env.AGENT_ACCOUNT_ID
+
 const registerAgentCmd = {
-  command: 'register <account_id> <payable_account_id>',
+  command: 'register <account_id> [payable_account_id]',
   desc: 'Add your agent to cron known agents',
   builder: (yargs) => yargs
     .option('account_id', {
@@ -21,18 +23,18 @@ const registerAgentCmd = {
     }),
   handler: async options => {
     // await agentFunction('register_agent', options, false, undefined, 1e25);
-    await registerAgent(options.account_id, options.payable_account_id, options);
+    await registerAgent(options.account_id, options.payable_account_id || options.account_id, options);
   }
 };
 
 const updateAgent = {
-  command: 'update <account_id> <payable_account_id>',
+  command: 'update <account_id> [payable_account_id]',
   desc: 'Update your agent to cron known agents',
   builder: (yargs) => yargs
     .option('account_id', {
       desc: 'Account to add',
       type: 'string',
-      required: true
+      required: true,
     })
     .option('payable_account_id', {
       desc: 'Account that receives reward payouts',
@@ -59,29 +61,31 @@ const unregisterAgent = {
 };
 
 const withdrawBalance = {
-  command: 'withdraw <account_id>',
+  command: 'withdraw [account_id]',
   desc: 'Withdraw all rewards earned for this account',
   builder: (yargs) => yargs
     .option('account_id', {
       desc: 'Account that earned rewards.',
       type: 'string',
-      required: true
+      required: false
     }),
   handler: async options => {
+    if (!options.account_id) options.account_id = AGENT_ACCOUNT_ID
     await agentFunction('withdraw_task_balance', options);
   }
 };
 
 const status = {
-  command: 'status <account_id>',
+  command: 'status [account_id]',
   desc: 'Check agent status and balance for this account',
   builder: (yargs) => yargs
     .option('account_id', {
       desc: 'Account to check',
       type: 'string',
-      required: true
+      required: false
     }),
   handler: async options => {
+    if (!options.account_id && AGENT_ACCOUNT_ID) options.account_id = AGENT_ACCOUNT_ID
     await agentFunction('get_agent', options, true);
   }
 };
@@ -96,15 +100,16 @@ const tasks = {
 };
 
 const go = {
-  command: 'go <account_id>',
+  command: 'go [account_id]',
   desc: 'Run tasks that are available, if agent is registered and has balance',
   builder: (yargs) => yargs
     .option('account_id', {
       desc: 'Account to check',
       type: 'string',
-      required: true
+      required: false
     }),
   handler: async options => {
+    if (!options.account_id && AGENT_ACCOUNT_ID) options.account_id = AGENT_ACCOUNT_ID
     await bootstrapAgent(options.account_id, options)
 
     // MAIN AGENT LOOP
