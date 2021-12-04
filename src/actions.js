@@ -39,7 +39,7 @@ const pingHeartbeat = async () => {
   return Promise.resolve()
 }
 
-function removeUneededArgs(obj) {
+function removeUnneededArgs(obj) {
   const allowed = ['agent_account_id', 'payable_account_id', 'account', 'offset', 'accountId', 'account_id', 'payableAccountId']
   const fin = {}
 
@@ -225,6 +225,9 @@ export async function runAgentTick(options = {}) {
     agentSettings = await getAgent(agentId)
   } catch (ae) {
     agentSettings = {}
+    // if no status, trigger a delayed retry
+    setTimeout(() => { runAgentTick(options) }, WAIT_INTERVAL_MS)
+    return;
   }
   // Check agent is active & able to run tasks
   if (!agentSettings || !agentSettings.status || agentSettings.status !== 'Active') {
@@ -283,7 +286,7 @@ export async function runAgentTick(options = {}) {
 export async function agentFunction(method, args, isView, gas = BASE_GAS_FEE, amount = BASE_ATTACHED_PAYMENT) {
   const account = args.account || args.account_id || args.agent_account_id || AGENT_ACCOUNT_ID
   const manager = await getCronManager(account, args)
-  const params = method === 'unregister' ? {} : removeUneededArgs(args)
+  const params = method === 'unregister' ? {} : removeUnneededArgs(args)
   let res
   if (LOG_LEVEL === 'debug') console.log(account, isView, manager[method], params, gas, amount);
 
@@ -310,10 +313,21 @@ export async function agentFunction(method, args, isView, gas = BASE_GAS_FEE, am
   if (isView && res) {
     try {
       const payload = typeof res === 'object' ? res : JSON.parse(res)
+
+      if (method === 'get_agent') {
+        const balance = await Near.getAccountBalance()
+        const formattedBalance = utils.format.formatNearAmount(balance)
+        payload.wallet_balance = formattedBalance
+      }
+
+      if (payload.balance) {
+        payload.reward_balance = utils.format.formatNearAmount(payload.balance)
+        delete payload.balance
+      }
+
       log('\n')
       Object.keys(payload).forEach(k => {
-        const value = k === 'balance' ? utils.format.formatNearAmount(payload[k]) : payload[k]
-        log(`${chalk.bold.white(k.replace(/\_/g, ' '))}: ${chalk.white(value)}`)
+        log(`${chalk.bold.white(k.replace(/\_/g, ' '))}: ${chalk.white(payload[k])}`)
       })
       log('\n')
     } catch (ee) {

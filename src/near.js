@@ -1,6 +1,6 @@
 import "core-js/stable"
 import "regenerator-runtime/runtime"
-import { connect, KeyPair, keyStores, Contract, WalletConnection, WalletAccount } from 'near-api-js'
+import { connect, KeyPair, keyStores, Contract, utils, WalletConnection, WalletAccount } from 'near-api-js'
 // import fs from 'fs'
 import path from 'path'
 import { homedir } from 'os'
@@ -34,7 +34,7 @@ class NearProvider {
 
     const keyPair = KeyPair.fromRandom('ed25519')
     const publicKey = keyPair.publicKey.toString()
-    const id = accountId || implicitAccountId(publicKey)
+    const id = accountId || utils.PublicKey.fromString(publicKey).data.hexSlice()
     this.accountId = id
     await keyStore.setKey(this.config.networkId, id, keyPair)
     console.log(`NEW AGENT CREATED: "${id}", Public Key ${publicKey}\n Requires funds to start processing tasks.`)
