@@ -9,6 +9,7 @@ import slack from './slack'
 
 const log = console.log
 export const env = process.env.NODE_ENV || 'development'
+export const near_env = process.env.NEAR_ENV || 'testnet'
 export const LOG_LEVEL = process.env.LOG_LEVEL || 'info'
 export const WAIT_INTERVAL_MS = process.env.WAIT_INTERVAL_MS ? parseInt(`${process.env.WAIT_INTERVAL_MS}`) : 30000
 export const AGENT_ACCOUNT_ID = process.env.AGENT_ACCOUNT_ID || 'croncat-agent'
@@ -63,6 +64,17 @@ export async function connect(options) {
   } catch (e) {
     log(`${chalk.red('NEAR Connection Failed')}`)
     process.exit(1)
+  }
+}
+
+export async function getAgentBalance() {
+  try {
+    const balance = await Near.getAccountBalance()
+    return balance
+  } catch (e) {
+    log(`${chalk.red('NEAR RPC Failed')}`)
+    notifySlack(`*Attention!* NEAR ${near_env} RPC Failed to retrieve balance!`)
+    return 0
   }
 }
 
@@ -137,7 +149,7 @@ export async function getCroncatInfo(options) {
 }
 
 export async function checkAgentBalance(agentId) {
-  const balance = await Near.getAccountBalance()
+  const balance = await getAgentBalance()
   const formattedBalance = utils.format.formatNearAmount(balance)
   const hasEnough = Big(balance).gt(BASE_GAS_FEE)
   log(`
@@ -157,7 +169,7 @@ export async function checkAgentBalance(agentId) {
 }
 
 export async function checkAgentTaskBalance(options) {
-  const balance = await Near.getAccountBalance()
+  const balance = await getAgentBalance()
   const notEnough = Big(balance).lt(AGENT_MIN_TASK_BALANCE)
   if (notEnough) {
     log(`
@@ -174,9 +186,16 @@ export async function refillAgentTaskBalance(options) {
       args: {},
       gas: BASE_GAS_FEE,
     })
-    const balance = await Near.getAccountBalance()
-    log(`Agent Refilled, Balance: ${chalk.blue(utils.format.formatNearAmount(balance))}`)
-    notifySlack(`Agent Refilled, Balance: *${utils.format.formatNearAmount(balance)}*`)
+    const balance = await getAgentBalance()
+    const notEnough = Big(balance).lt(AGENT_MIN_TASK_BALANCE)
+    if (notEnough) {
+      log(`${chalk.red('Balance too low.')}`)
+      notifySlack(`*Attention!* Not enough balance to execute tasks, refill please.`)
+      process.exit(1)
+    } else {
+      log(`Agent Refilled, Balance: ${chalk.blue(utils.format.formatNearAmount(balance))}`)
+      notifySlack(`Agent Refilled, Balance: *${utils.format.formatNearAmount(balance)}*`)
+    }
   } catch (e) {
     log(`${chalk.red('No balance to withdraw.')}`)
     notifySlack(`*Attention!* No balance to withdraw.`)
@@ -315,7 +334,7 @@ export async function agentFunction(method, args, isView, gas = BASE_GAS_FEE, am
       const payload = typeof res === 'object' ? res : JSON.parse(res)
 
       if (method === 'get_agent') {
-        const balance = await Near.getAccountBalance()
+        const balance = await getAgentBalance()
         const formattedBalance = utils.format.formatNearAmount(balance)
         payload.wallet_balance = formattedBalance
       }
@@ -337,7 +356,7 @@ export async function agentFunction(method, args, isView, gas = BASE_GAS_FEE, am
 
   if (method === 'get_agent') {
     // Check User Balance
-    const balance = await Near.getAccountBalance()
+    const balance = await getAgentBalance()
 
     // ALERT USER is their balance is lower than they should be
     if (!balance || balance < 3e24) {
