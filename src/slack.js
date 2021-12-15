@@ -7,7 +7,7 @@ class Slack {
   }
 
   getHookUrl(options) {
-    if (!options || !options.slackToken) return
+    if (!options || !options.slackToken && !this.slackToken) return
     const id = options.slackToken || this.slackToken
     return `https://hooks.slack.com/services/${id}`
   }

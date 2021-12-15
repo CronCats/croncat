@@ -18,13 +18,14 @@ For a list of up-to-date commands, run `croncat --help` in your terminal.
 Usage: croncat <command> [options]
 
 Commands:
-  croncat register <account_id> <payable_account_id>  Add your agent to cron known agents
-  croncat update <account_id> <payable_account_id>    Update your agent to cron known agents
+  croncat register <account_id> [payable_account_id]  Add your agent to cron known agents
+  croncat update <account_id> [payable_account_id]    Update your agent to cron known agents
   croncat unregister <account_id>                     Account to remove from list of active agents.
-  croncat withdraw <account_id>                       Withdraw all rewards earned for this account
-  croncat status <account_id>                         Check agent status and balance for this account
+  croncat withdraw [account_id]                       Withdraw all rewards earned for this account
+  croncat status [account_id]                         Check agent status and balance for this account
   croncat tasks                                       Check how many tasks are currently available
-  croncat go <account_id>                             Run tasks that are available, if agent is registered and has balance
+  croncat go [account_id]                             Run tasks that are available, if agent is registered and has balance
+  croncat daemon [near_env]                           Generate a network specific croncat daemon service
 ```
 
 ## Docker Installation & Setup
@@ -86,6 +87,8 @@ AGENT_ACCOUNT_ID=YOUR_ACCOUNT.near
 AGENT_MIN_TASK_BALANCE=1
 # When balance is empty, will auto-withdraw rewards to cover signing txns, withdraws the payout account.
 AGENT_AUTO_REFILL=true
+# Helpful if your agent gets kicked after being inactive for any reason. Will attempt to re-register and become a pending agent upon next start.
+AGENT_AUTO_RE_REGISTER=false
 
 # The interval to wait between checking for tasks. Good intervals are below 60 seconds and above 10 seconds.
 WAIT_INTERVAL_MS=450000
@@ -97,6 +100,43 @@ SLACK_CHANNEL=general
 # If you have an external heartbeat service that just needs a ping (GET request)
 HEARTBEAT=false
 HEARTBEAT_URL=GET_REQUEST_URL_FOR_STATUS_SERVICE
+
+## -------------------------------------------------------------------
+## RPC Providers
+## Configure the following as CSV, in priority order, for RPC Failover
+## -------------------------------------------------------------------
+# Example: RPC_MAINNET_PROVIDERS="https://rpc.mainnet.near.org,http://localhost:3030"
+RPC_MAINNET_PROVIDERS="https://mainnet-rpc.openshards.io,https://rpc.mainnet.near.org"
+RPC_TESTNET_PROVIDERS="https://rpc.testnet.near.org,https://testnet-rpc.openshards.io"
+RPC_GUILDNET_PROVIDERS="https://rpc.openshards.io"
+RPC_BETANET_PROVIDERS="https://rpc.betanet.near.org"
+
+## RPC API KEY for providers that require it
+RPC_API_KEY=
+```
+
+## Croncat Agent DAEMON
+
+To setup an agent that has auto reboot capability, do the following steps:
+
+```bash
+# 1. create a service file via daemon command: Example for guildnet, use your desired network
+croncat daemon guildnet
+
+# 2. create the service symlink and then enable the service
+sudo systemctl link ~/croncat/testnet/croncat_testnet.service
+sudo systemctl enable croncat_testnet.service
+
+# 3. reload systemctl
+sudo systemctl daemon-reload
+
+# 4. start the service
+sudo systemctl start croncat_testnet.service
+
+# 5. for accessing logs, you can use these commands, just make sure to use the right network name
+journalctl -f -u croncat_testnet.service
+tail -f /var/log/croncat_testnet.log
+tail -f /var/log/croncaterror.log
 ```
 
 ## Development & Local Testing

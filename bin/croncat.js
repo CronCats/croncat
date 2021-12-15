@@ -3,6 +3,7 @@ const chalk = require('chalk')
 const yargs = require('yargs')
 import { utils } from 'near-api-js'
 import getConfig from '../src/configuration'
+import { createDaemonFile } from '../src/createSystemctl'
 const { agentFunction, bootstrapAgent, runAgentTick, registerAgent } = require('../src/actions')
 
 const AGENT_ACCOUNT_ID = process.env.AGENT_ACCOUNT_ID
@@ -117,6 +118,21 @@ const go = {
   }
 };
 
+const daemon = {
+  command: 'daemon [near_env]',
+  desc: 'Generate a network specific croncat daemon service',
+  builder: (yargs) => yargs
+    .option('near_env', {
+      desc: 'NEAR_ENV',
+      type: 'string',
+      required: false
+    }),
+  handler: async options => {
+    const env = options.near_env || 'testnet'
+    await createDaemonFile(env)
+  }
+};
+
 const config = getConfig(process.env.NODE_ENV || 'development')
 yargs // eslint-disable-line
   .strict()
@@ -159,6 +175,7 @@ yargs // eslint-disable-line
   .command(status)
   .command(tasks)
   .command(go)
+  .command(daemon)
   .config(config)
   .showHelpOnFail(true)
   .recommendCommands()

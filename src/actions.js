@@ -15,15 +15,17 @@ export const WAIT_INTERVAL_MS = process.env.WAIT_INTERVAL_MS ? parseInt(`${proce
 export const AGENT_ACCOUNT_ID = process.env.AGENT_ACCOUNT_ID || 'croncat-agent'
 export const AGENT_MIN_TASK_BALANCE = utils.format.parseNearAmount(`${process.env.AGENT_MIN_TASK_BALANCE || '1'}`) // Default: 1_000_000_000_000_000_000_000_000 (1 NEAR)
 export const AGENT_AUTO_REFILL = process.env.AGENT_AUTO_REFILL === 'true' ? true : false
+export const AGENT_AUTO_RE_REGISTER = process.env.AGENT_AUTO_RE_REGISTER === 'true' ? true : false
 export const BASE_GAS_FEE = 300000000000000
 export const BASE_ATTACHED_PAYMENT = 0
 export const BASE_REGISTER_AGENT_FEE = '4840000000000000000000'
 let agentSettings = {}
 let croncatSettings = {}
 
-const slackProvider = new slack({ 'slackToken': process.env.SLACK_TOKEN })
+const slackToken = process.env.SLACK_TOKEN || null
+const slackProvider = new slack({ slackToken })
 const notifySlack = text => {
-  if (process.env.SLACK_TOKEN) return slackProvider.send({
+  if (slackToken) return slackProvider.send({
     slackChannel: process.env.SLACK_CHANNEL,
     text
   })
@@ -391,7 +393,9 @@ export async function bootstrapAgent(agentId, options) {
       process.exit(0);
     }
   } catch (e) {
-    log(`No Agent: ${chalk.gray('Please register')}`)
-    // await registerAgent(agentId)
+    if (AGENT_AUTO_RE_REGISTER) {
+      log(`No Agent: ${chalk.gray('Attempting to register...')}`)
+      await registerAgent(agentId)
+    } else log(`No Agent: ${chalk.gray('Please register')}`)
   }
 }
