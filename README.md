@@ -136,7 +136,7 @@ sudo systemctl start croncat_testnet.service
 # 5. for accessing logs, you can use these commands, just make sure to use the right network name
 journalctl -f -u croncat_testnet.service
 tail -f /var/log/croncat_testnet.log
-tail -f /var/log/croncaterror.log
+tail -f /var/log/croncat_testneterror.log
 ```
 
 ## Development & Local Testing
