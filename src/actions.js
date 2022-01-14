@@ -25,10 +25,14 @@ let croncatSettings = {}
 const slackToken = process.env.SLACK_TOKEN || null
 const slackProvider = new slack({ slackToken })
 const notifySlack = text => {
-  if (slackToken) return slackProvider.send({
-    slackChannel: process.env.SLACK_CHANNEL,
-    text
-  })
+  try {
+    if (slackToken) return slackProvider.send({
+      slackChannel: process.env.SLACK_CHANNEL,
+      text
+    })
+  } catch (e) {
+    //
+  }
 }
 
 const pingHeartbeat = async () => {
@@ -75,8 +79,8 @@ export async function getAgentBalance() {
     return balance
   } catch (e) {
     log(`${chalk.red('NEAR RPC Failed')}`)
-    notifySlack(`*Attention!* NEAR ${near_env} RPC Failed to retrieve balance!`)
-    return 0
+    await notifySlack(`*Attention!* NEAR ${near_env} RPC Failed to retrieve balance!`)
+    process.exit(1)
   }
 }
 
@@ -166,7 +170,7 @@ export async function checkAgentBalance(agentId) {
       ${chalk.bold.white('2. Use the web wallet to send funds: ')}${chalk.underline.blue(Near.config.walletUrl + '/send-money')}
       ${chalk.bold.white('3. Use NEAR CLI to send funds: ')} "near send OTHER_ACCOUNT ${AGENT_ACCOUNT_ID} ${(Big(BASE_GAS_FEE).mul(4))}"
     `)
-    process.exit(1)
+    process.exit(0)
   }
 }
 
@@ -192,15 +196,15 @@ export async function refillAgentTaskBalance(options) {
     const notEnough = Big(balance).lt(AGENT_MIN_TASK_BALANCE)
     if (notEnough) {
       log(`${chalk.red('Balance too low.')}`)
-      notifySlack(`*Attention!* Not enough balance to execute tasks, refill please.`)
+      await notifySlack(`*Attention!* Not enough balance to execute tasks, refill please.`)
       process.exit(1)
     } else {
       log(`Agent Refilled, Balance: ${chalk.blue(utils.format.formatNearAmount(balance))}`)
-      notifySlack(`Agent Refilled, Balance: *${utils.format.formatNearAmount(balance)}*`)
+      await notifySlack(`Agent Refilled, Balance: *${utils.format.formatNearAmount(balance)}*`)
     }
   } catch (e) {
     log(`${chalk.red('No balance to withdraw.')}`)
-    notifySlack(`*Attention!* No balance to withdraw.`)
+    await notifySlack(`*Attention!* No balance to withdraw.`)
     process.exit(1)
   }
 }
@@ -258,8 +262,8 @@ export async function runAgentTick(options = {}) {
 
   // Alert if agent changes status:
   if (previousAgentSettings.status !== agentSettings.status) {
-    notifySlack(`*Agent Status Update:*\nYour agent is now a status of *${agentSettings.status}*`)
     log(`Agent Status: ${chalk.white(agentSettings.status)}`)
+    await notifySlack(`*Agent Status Update:*\nYour agent is now a status of *${agentSettings.status}*`)
 
     // TODO: At this point we could check if we need to re-register the agent if enough remaining balance, and status went from active to pending or none.
     // NOTE: For now, stopping the process if no agent settings.
@@ -365,7 +369,7 @@ export async function agentFunction(method, args, isView, gas = BASE_GAS_FEE, am
       log(`${chalk.bold.red('Attention!')}: ${chalk.redBright('Please add more funds to your account to continue sending transactions')}`)
       log(`${chalk.bold.red('Current Account Balance:')}: ${chalk.redBright(utils.format.formatNearAmount(balance))}\n`)
 
-      notifySlack(`*Attention!* Please add more funds to your account to continue sending transactions.\nCurrent Account Balance: *${utils.format.formatNearAmount(balance)}*`)
+      await notifySlack(`*Attention!* Please add more funds to your account to continue sending transactions.\nCurrent Account Balance: *${utils.format.formatNearAmount(balance)}*`)
     }
   }
 }
