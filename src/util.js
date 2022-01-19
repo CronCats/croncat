@@ -1,4 +1,4 @@
-require('dotenv').config()
+import * as config from './configuration'
 const contractAbi = require('./contract_abi.json')
 import { utils } from 'near-api-js'
 import axios from 'axios'

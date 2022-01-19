@@ -1,24 +1,9 @@
-require('dotenv').config()
+import * as config from './configuration'
 import { utils } from 'near-api-js'
 import Big from 'big.js'
 import chalk from 'chalk'
 
-const log = console.log
-export const env = process.env.NODE_ENV || 'development'
-export const near_env = process.env.NEAR_ENV || 'testnet'
-export const LOG_LEVEL = process.env.LOG_LEVEL || 'info'
-export const WAIT_INTERVAL_MS = process.env.WAIT_INTERVAL_MS ? parseInt(`${process.env.WAIT_INTERVAL_MS}`) : 30000
-export const AGENT_ACCOUNT_ID = process.env.AGENT_ACCOUNT_ID || 'croncat-agent'
-export const AGENT_MIN_TASK_BALANCE = utils.format.parseNearAmount(`${process.env.AGENT_MIN_TASK_BALANCE || '1'}`) // Default: 1_000_000_000_000_000_000_000_000 (1 NEAR)
-export const AGENT_AUTO_REFILL = process.env.AGENT_AUTO_REFILL === 'true' ? true : false
-export const AGENT_AUTO_RE_REGISTER = process.env.AGENT_AUTO_RE_REGISTER === 'true' ? true : false
-export const BASE_GAS_FEE = 300000000000000
-export const BASE_ATTACHED_PAYMENT = 0
-export const BASE_REGISTER_AGENT_FEE = '4840000000000000000000'
 let agentSettings = {}
-let croncatSettings = {}
-
-let cronManager = null
 let agentAccount = null
 
 export async function getAgentBalance() {
@@ -54,13 +39,13 @@ export async function registerAgent(agentId, payable_account_id, options) {
   }
 }
 
-export async function getAgent(agentId, options) {
-  const manager = await getCronManager(null, options)
+export async function getAgent(agentId) {
+  const manager = await getCronManager()
   try {
-    const res = await manager.get_agent({ account_id: agentId || agentAccount })
+    const res = await manager.get_agent({ account_id: agentId })
     return res
   } catch (ge) {
-    if (LOG_LEVEL === 'debug') console.log(ge);
+    if (config.LOG_LEVEL === 'debug') console.log(ge);
   }
 }
 
@@ -119,12 +104,12 @@ export async function refillAgentTaskBalance(options) {
   }
 }
 
-
+// Initialize the agent & all configs, returns TRUE if agent is active
 export async function bootstrap(agentId, options) {
   await connect(options)
 
   // 1. Check for local signing keys, if none - generate new and halt until funded
-  agentAccount = `${await Near.getAccountCredentials(agentId || AGENT_ACCOUNT_ID)}`
+  agentAccount = `${await Near.getAccountCredentials(agentId || config.AGENT_ACCOUNT_ID)}`
 
   // 2. Check for balance, if enough to execute txns, start main tasks
   await checkAgentBalance(agentId)
@@ -148,4 +133,6 @@ export async function bootstrap(agentId, options) {
       await registerAgent(agentId)
     } else log(`No Agent: ${chalk.gray('Please register')}`)
   }
+
+  return agentSettings ? true : false
 }
