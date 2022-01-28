@@ -4,10 +4,6 @@ import * as util from './util'
 import { utils } from 'near-api-js'
 import chalk from 'chalk'
 
-let agentSettings = {}
-let croncatSettings = {}
-let agentBalanceCheckIdx = 0
-
 export async function rpcFunction(method, args, isView, gas = BASE_GAS_FEE, amount = BASE_ATTACHED_PAYMENT) {
   const account = args.account || args.account_id || args.agent_account_id || AGENT_ACCOUNT_ID
   const manager = await getCronManager(account, args)
@@ -76,19 +72,6 @@ export async function rpcFunction(method, args, isView, gas = BASE_GAS_FEE, amou
   }
 }
 
-export const pingAgentBalance = async () => {
-  // Logic will trigger on initial run, then every 5th txn
-  // NOTE: This is really only useful if the payout account is the same as the agent
-  if (config.AGENT_AUTO_REFILL && agentBalanceCheckIdx === 0) {
-    await agent.checkAgentTaskBalance()
-
-    // Always ping heartbeat here, checks config
-    await util.pingHeartbeat()
-  }
-  agentBalanceCheckIdx++
-  if (agentBalanceCheckIdx > 5) agentBalanceCheckIdx = 0
-}
-
 // returns if agent should skip next call or not
 export const getTasks = async () => {
   const manager = await util.getCronManager()
@@ -113,57 +96,6 @@ export const getTasks = async () => {
 
   if (config.LOG_LEVEL === 'debug') console.log('taskRes', taskRes)
   if (totalTasks <= 0) skipThisIteration = true
-
-  return skipThisIteration
-}
-
-// Checks if need to re-register agent based on tasks getting missed
-export const reRegisterAgent = async () => {
-  if (!config.AGENT_AUTO_RE_REGISTER) process.exit(1)
-  await agent.reRegister()
-}
-
-// returns if agent should skip next call or not
-// TODO: Check if this logic is always needed, or can be cached?
-export const checkAgent = async () => {
-  let skipThisIteration = false
-  let previousAgentSettings = { ...agentSettings }
-
-  try {
-    agentSettings = await agent.getAgent()
-  } catch (ae) {
-    agentSettings = {}
-    // if no status, trigger a delayed retry
-    skipThisIteration = true
-    return skipThisIteration
-  }
-  // Check agent is active & able to run tasks
-  if (!agentSettings || !agentSettings.status || agentSettings.status !== 'Active') {
-    console.log(`Agent Status: ${chalk.white(agentSettings.status)}`)
-    skipThisIteration = true
-  }
-
-  // Alert if agent changes status:
-  if (previousAgentSettings.status !== agentSettings.status) {
-    console.log(`Agent Status: ${chalk.white(agentSettings.status)}`)
-    await util.notifySlack(`*Agent Status Update:*\nYour agent is now a status of *${agentSettings.status}*`)
-
-    // TODO: At this point we could check if we need to re-register the agent if enough remaining balance, and status went from active to pending or none.
-    // NOTE: For now, stopping the process if no agent settings.
-    if (!agentSettings.status) process.exit(1)
-  }
-
-  // Use agentSettings to check if the maximum missed slots have happened, stop and notify!
-  let last_missed_slot = agentSettings.last_missed_slot;
-  if (last_missed_slot !== 0) {
-    if (last_missed_slot > (parseInt(taskRes[1]) + (croncatSettings.agents_eject_threshold * croncatSettings.slot_granularity))) {
-      const ejectMsg = 'Agent has been ejected! Too many slots missed!'
-      console.log(`${chalk.red(ejectMsg)}`)
-      await util.notifySlack(`*${ejectMsg}*`)
-      // TODO: Assess if re-register
-      process.exit(1);
-    }
-  }
 
   return skipThisIteration
 }
@@ -198,24 +130,20 @@ export const proxyCall = async () => {
 export async function run() {
   let skipThisIteration = false
 
-  // 0. Check balance & ping
-  await pingAgentBalance()
-
   // 1. Check for tasks
   skipThisIteration = await getTasks()
-  if (skipThisIteration) return setTimeout(run, WAIT_INTERVAL_MS)
+  if (skipThisIteration) return setTimeout(run, config.WAIT_INTERVAL_MS)
 
   // 2. Check agent status
-  skipThisIteration = await checkAgent()
-  if (skipThisIteration) return setTimeout(run, WAIT_INTERVAL_MS)
+  // TODO: Change - to only check if KICKED
+  // skipThisIteration = await checkAgent()
+  // if (skipThisIteration) return setTimeout(run, config.WAIT_INTERVAL_MS)
 
   // 3. Sign task and submit to chain
-  if (!skipThisIteration) {
-    skipThisIteration = await proxyCall()
-  }
+  if (!skipThisIteration) skipThisIteration = await proxyCall()
 
   // 4. Wait, then loop again.
   // Run immediately if executed tasks remain for this slot, then sleep until next slot.
-  const nextAttemptInterval = skipThisIteration ? WAIT_INTERVAL_MS : 100
+  const nextAttemptInterval = skipThisIteration ? config.WAIT_INTERVAL_MS : 100
   setTimeout(run, nextAttemptInterval)
 }

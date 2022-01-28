@@ -3,6 +3,7 @@ import { utils } from 'near-api-js'
 import Big from 'big.js'
 import chalk from 'chalk'
 
+let croncatSettings = null
 let agentSettings = {}
 let agentAccount = null
 
@@ -104,12 +105,82 @@ export async function refillAgentTaskBalance(options) {
   }
 }
 
+export const pingAgentBalance = async () => {
+  // Logic will trigger on initial run, then every 5th txn
+  // NOTE: This is really only useful if the payout account is the same as the agent
+  if (config.AGENT_AUTO_REFILL && agentBalanceCheckIdx === 0) {
+    await agent.checkAgentTaskBalance()
+
+    // Always ping heartbeat here, checks config
+    await util.pingHeartbeat()
+  }
+  agentBalanceCheckIdx++
+  if (agentBalanceCheckIdx > 5) agentBalanceCheckIdx = 0
+}
+
+// Checks if need to re-register agent based on tasks getting missed
+export const reRegisterAgent = async () => {
+  if (!config.AGENT_AUTO_RE_REGISTER) process.exit(1)
+  await agent.reRegister()
+}
+
+// returns if agent is active or not
+export const checkStatus = async () => {
+  let isActive = false
+  let previousAgentSettings = { ...agentSettings }
+
+  try {
+    agentSettings = await agent.getAgent()
+  } catch (ae) {
+    agentSettings = {}
+    // if no status, trigger a delayed retry
+    return isActive
+  }
+  // Check agent is active & able to run tasks
+  if (!agentSettings || !agentSettings.status || agentSettings.status !== 'Active') {
+    console.log(`Agent Status: ${chalk.white(agentSettings.status)}`)
+  }
+
+  // Alert if agent changes status:
+  if (previousAgentSettings.status !== agentSettings.status) {
+    console.log(`Agent Status: ${chalk.white(agentSettings.status)}`)
+    await util.notifySlack(`*Agent Status Update:*\nYour agent is now a status of *${agentSettings.status}*`)
+
+    // TODO: At this point we could check if we need to re-register the agent if enough remaining balance, and status went from active to pending or none.
+    // NOTE: For now, stopping the process if no agent settings.
+    if (!agentSettings.status) process.exit(1)
+  }
+
+  // Use agentSettings to check if the maximum missed slots have happened, stop and notify!
+  let last_missed_slot = agentSettings.last_missed_slot;
+  if (last_missed_slot !== 0) {
+    if (last_missed_slot > (parseInt(taskRes[1]) + (croncatSettings.agents_eject_threshold * croncatSettings.slot_granularity))) {
+      const ejectMsg = 'Agent has been ejected! Too many slots missed!'
+      console.log(`${chalk.red(ejectMsg)}`)
+      await util.notifySlack(`*${ejectMsg}*`)
+      // TODO: Assess if re-register
+      process.exit(1);
+    }
+  }
+
+  return true
+}
+
+// TODO: Is this all i need to do? kinda seemed too easy... ROFL
+export async function run() {
+  await checkStatus()
+  await pingAgentBalance()
+  // Wait, then loop again.
+  setTimeout(() => { run() }, config.WAIT_INTERVAL_MS)
+}
+
 // Initialize the agent & all configs, returns TRUE if agent is active
-export async function bootstrap(agentId, options) {
-  await connect(options)
+export async function bootstrap() {
+  await connect()
+  const agentId = config.AGENT_ACCOUNT_ID
 
   // 1. Check for local signing keys, if none - generate new and halt until funded
-  agentAccount = `${await Near.getAccountCredentials(agentId || config.AGENT_ACCOUNT_ID)}`
+  agentAccount = `${await Near.getAccountCredentials(agentId)}`
 
   // 2. Check for balance, if enough to execute txns, start main tasks
   await checkAgentBalance(agentId)
@@ -121,14 +192,14 @@ export async function bootstrap(agentId, options) {
       log(`No Agent: ${chalk.red('Please register')}`)
       process.exit(0);
     }
-    log(`Registered Agent: ${chalk.white(agentId || AGENT_ACCOUNT_ID)}`)
-    croncatSettings = await getCroncatInfo(options)
+    log(`Registered Agent: ${chalk.white(agentId)}`)
+    croncatSettings = await getCroncatInfo()
     if (!croncatSettings) {
       log(`No Croncat Deployed At this Network`)
       process.exit(0);
     }
   } catch (e) {
-    if (AGENT_AUTO_RE_REGISTER) {
+    if (config.AGENT_AUTO_RE_REGISTER) {
       log(`No Agent: ${chalk.gray('Attempting to register...')}`)
       await registerAgent(agentId)
     } else log(`No Agent: ${chalk.gray('Please register')}`)

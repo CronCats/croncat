@@ -58,7 +58,8 @@ export const viewTrigger = async trigger_hash => {
       } else this.validFunctionId = true
     }
     console.log('callTrigger res', res)
-    // outcome = true
+    // check outcome === true
+    // res should return a standard payload: (bool, Base64VecU8)
   } catch (e) {
     if (LOG_LEVEL === 'debug') console.log('callTrigger', e)
   }
