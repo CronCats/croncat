@@ -69,7 +69,7 @@ export const queryRpc = async (account_id, method_name, args, options = {}, args
 
   try {
     // TODO: Test this, setup using connection pool
-    res = await Near.connection.provider.query({
+    res = await Near.client.connection.provider.query({
       request_type: 'call_function',
       finality: 'final',
       account_id,

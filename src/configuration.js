@@ -19,6 +19,7 @@ export const NEAR_ENV = process.env.NEAR_ENV || 'testnet'
 export const LOG_LEVEL = process.env.LOG_LEVEL || 'info'
 export const BETA_FEATURES = process.env.BETA_FEATURES === 'true' ? true : false
 export const WAIT_INTERVAL_MS = process.env.WAIT_INTERVAL_MS ? parseInt(`${process.env.WAIT_INTERVAL_MS}`) : 30000
+export const TRIGGER_INTERVAL_MS = process.env.TRIGGER_INTERVAL_MS ? parseInt(`${process.env.TRIGGER_INTERVAL_MS}`) : 10000
 export const AGENT_ACCOUNT_ID = process.env.AGENT_ACCOUNT_ID || 'croncat-agent'
 export const AGENT_MIN_TASK_BALANCE = utils.format.parseNearAmount(`${process.env.AGENT_MIN_TASK_BALANCE || '1'}`) // Default: 1_000_000_000_000_000_000_000_000 (1 NEAR)
 export const AGENT_AUTO_REFILL = process.env.AGENT_AUTO_REFILL === 'true' ? true : false

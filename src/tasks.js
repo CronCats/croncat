@@ -1,5 +1,4 @@
 import * as config from './configuration'
-import * as agent from './agent'
 import * as util from './util'
 import { utils } from 'near-api-js'
 import chalk from 'chalk'
@@ -108,8 +107,8 @@ export const proxyCall = async () => {
   try {
     const res = await manager.proxy_call({
       args: {},
-      gas: BASE_GAS_FEE,
-      amount: BASE_ATTACHED_PAYMENT,
+      gas: config.BASE_GAS_FEE,
+      amount: config.BASE_ATTACHED_PAYMENT,
     })
     if (config.LOG_LEVEL === 'debug') console.log(res)
     if (config.LOG_LEVEL === 'debug') console.log(`${chalk.yellowBright('TX:' + res.transaction_outcome.id)}`)
