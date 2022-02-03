@@ -9,7 +9,7 @@ export async function call(method, args, isView, gas = config.BASE_GAS_FEE, amou
   const manager = await util.getCronManager(account, args)
   const params = method === 'unregister' ? {} : util.removeUnneededArgs(args)
   let res
-  if (config.LOG_LEVEL === 'debug') console.log(account, isView, manager[method], params, gas, amount);
+  util.dbug(account, isView, manager[method], params, gas, amount);
 
   try {
     res = isView
@@ -25,7 +25,7 @@ export async function call(method, args, isView, gas = config.BASE_GAS_FEE, amou
       console.log('\t' + chalk.red(e.panic_msg.split(',')[0].replace('panicked at ', '').replace(/\'/g, '')))
       console.log('\n')
     }
-    if (config.LOG_LEVEL === 'debug') console.log('rpcFunction', e);
+    util.dbug('rpc.call', e);
   }
 
   if (res && !isView) return res
@@ -54,7 +54,7 @@ export async function call(method, args, isView, gas = config.BASE_GAS_FEE, amou
       console.log('\n')
     } catch (ee) {
       console.log(`${chalk.bold.white(method.replace(/\_/g, ' '))}: ${chalk.white(res)}`)
-      if (config.LOG_LEVEL === 'debug') console.log('rpcFunction view:', ee);
+      util.dbug('rpc.call view:', ee);
     }
   }
 

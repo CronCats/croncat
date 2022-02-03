@@ -1,13 +1,13 @@
 require('dotenv').config()
-const chalk = require('chalk')
-const yargs = require('yargs')
+import chalk from 'chalk'
+import yargs from 'yargs'
 import { createDaemonFile } from '../src/createSystemctl'
 import * as config from '../src/configuration'
 import * as entry from '../src/index'
 import * as agent from '../src/agent'
 import * as rpc from '../src/rpc'
-// import * as tasks from '../src/tasks'
 import * as triggers from '../src/triggers'
+import * as util from '../src/util'
 
 const AGENT_ACCOUNT_ID = config.AGENT_ACCOUNT_ID
 
@@ -98,7 +98,11 @@ const tasksCmd = {
   desc: 'Check how many tasks are currently available',
   builder: (yargs) => yargs,
   handler: async options => {
-    await rpc.call('get_slot_tasks', options, true)
+    // Deprecated in favor of web UI
+    // await rpc.call('get_slot_tasks', options, true)
+    const manager = await util.getCronManager()
+    const { networkId } = manager.account.connection
+    console.log(`${chalk.gray('View ' + networkId.toLowerCase() + ' Tasks:')} ${chalk.blueBright('https://cron.cat/tasks?network=' + networkId.toLowerCase())}`)
   }
 }
 

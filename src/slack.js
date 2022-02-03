@@ -1,5 +1,5 @@
-require('dotenv').config()
 import axios from 'axios'
+import * as config from './configuration'
 
 class Slack {
   constructor(options) {
@@ -15,8 +15,8 @@ class Slack {
 
   send(options = {}) {
     const url = this.getHookUrl(options)
-    const env_name = process.env.NEAR_ENV || 'testnet'
-    const account = process.env.AGENT_ACCOUNT_ID || null
+    const env_name = config.NEAR_ENV
+    const account = config.AGENT_ACCOUNT_ID
     if (!url) return
     const data = {
       channel: options.slackChannel ? `#${options.slackChannel}` : '#general',

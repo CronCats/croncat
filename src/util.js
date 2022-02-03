@@ -5,6 +5,10 @@ import NearProvider from './near'
 import chalk from 'chalk'
 import slack from './slack'
 
+export function dbug() {
+  if (config.LOG_LEVEL === 'debug') console.log(...arguments)
+}
+
 const slackToken = config.SLACK_TOKEN || null
 const slackChannel = config.SLACK_CHANNEL || 'general'
 const slackProvider = new slack({ slackToken })
@@ -15,7 +19,7 @@ export const notifySlack = text => {
       text
     })
   } catch (e) {
-    if (config.LOG_LEVEL === 'debug') console.log('notifySlack', e);
+    util.dbug('notifySlack', e);
   }
 }
 
@@ -24,7 +28,7 @@ export const pingHeartbeat = async () => {
     try {
       await axios.get(config.HEARTBEAT_URL)
     } catch (e) {
-      if (config.LOG_LEVEL === 'debug') console.log('pingHeartbeat', e);
+      util.dbug('pingHeartbeat', e);
     }
   }
   return Promise.resolve()
@@ -78,7 +82,7 @@ export const queryRpc = async (account_id, method_name, args, options = {}, args
       args_base64: args_base64 || btoa(JSON.stringify(args || {}))
     })
   } catch (e) {
-    if (config.LOG_LEVEL === 'debug') console.log('queryRpc', e)
+    util.dbug('queryRpc', e)
   }
 
   return options && typeof options.request_type !== 'undefined' ? res : parseResponse(res.result)
@@ -93,7 +97,7 @@ export async function connect(options) {
     await Near.getNearConnection(options)
   } catch (e) {
     log(`${chalk.red('NEAR Connection Failed')}`)
-    if (config.LOG_LEVEL === 'debug') console.log('near connect', e);
+    util.dbug('near connect', e);
     // TODO: Retry with diff Provider before hard exit
     process.exit(1)
   }
@@ -133,6 +137,6 @@ export async function getCroncatInfo() {
       agent_storage_usage: res[14],
     }
   } catch (e) {
-    if (config.LOG_LEVEL === 'debug') console.log('getCroncatInfo', e);
+    util.dbug('getCroncatInfo', e);
   }
 }

@@ -8,6 +8,7 @@ const CACHE_DELAY = 60 * 1000
 const TIME_GRANULARITY = 100 * 10000
 let lastCacheCheckTs = +new Date() - CACHE_DELAY
 let triggersProcessed = 0
+let triggersExecuted = 0
 
 // Get trigger list
 export const getTriggers = async (from_index = 0, limit = 100) => {
@@ -18,7 +19,7 @@ export const getTriggers = async (from_index = 0, limit = 100) => {
     // Only get task hashes my agent can execute
     triggers = await manager.get_triggers({ from_index: `${from_index}`, limit: `${limit}` })
   } catch (e) {
-    if (config.LOG_LEVEL === 'debug') console.log('getTriggers', e)
+    util.dbug('getTriggers', e)
   }
 
   return triggers
@@ -26,7 +27,6 @@ export const getTriggers = async (from_index = 0, limit = 100) => {
 
 // Get trigger cache
 // cache for current triggers list & configs
-// TODO: Add logging & stats logging if desired
 export const getAllTriggers = async () => {
   if (lastCacheCheckTs + CACHE_DELAY > +new Date()) return cache
   cache = []
@@ -46,9 +46,10 @@ export const getAllTriggers = async () => {
   
   // stats logging
   const manager = await util.getCronManager()
-  console.log(`${chalk.gray(new Date().toISOString())} ${chalk.gray('[' + manager.account.connection.networkId.toUpperCase() + ']')} Available Triggers: ${chalk.blueBright(cache.length)}, Processed: ${chalk.yellow(triggersProcessed)}`)
+  console.log(`${chalk.gray(new Date().toISOString())} ${chalk.gray('[' + manager.account.connection.networkId.toUpperCase() + ']')} Triggers: ${chalk.blueBright(cache.length)}, Processed: ${chalk.yellow(triggersProcessed)}, Executed: ${chalk.yellow(triggersExecuted)}`)
   // reset after log
   triggersProcessed = 0
+  triggersExecuted = 0
 
   return cache
 }
@@ -65,13 +66,13 @@ export const viewTrigger = async trigger_hash => {
   try {
     // Check if the trigger evaluates to true or false
     const res = await util.queryRpc(`${trigger.contract_id}`, `${trigger.function_id}`, null, null, trigger.arguments)
-    if (config.LOG_LEVEL === 'debug') console.log('callTrigger res', res)
+    util.dbug('callTrigger res', res)
     if (!res) outcome = false
     // res should return a standard payload: (bool, Base64VecU8)
     if (typeof res === 'boolean') outcome = res
     if (typeof res === 'object' && typeof res[0] === 'boolean') outcome = res[0]
   } catch (e) {
-    if (config.LOG_LEVEL === 'debug') console.log('callTrigger', e)
+    util.dbug('callTrigger', e)
   }
   triggersProcessed += 1
 
@@ -90,10 +91,11 @@ export const callTrigger = async trigger_hash => {
       gas: config.BASE_GAS_FEE,
       amount: config.BASE_ATTACHED_PAYMENT,
     })
-    if (config.LOG_LEVEL === 'debug') console.log('callTrigger res', res)
+    util.dbug('callTrigger res', res)
   } catch (e) {
-    if (config.LOG_LEVEL === 'debug') console.log('callTrigger', e)
+    util.dbug('callTrigger', e)
   }
+  triggersExecuted += 1
 }
 
 // NOTE: This is built to be SPEED optimized, rather than safe on account balance. Meaning failed TXNs can happen for lack of balance.

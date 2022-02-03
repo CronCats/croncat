@@ -31,9 +31,9 @@ export async function registerAgent(agentId, payable_account_id) {
       amount: config.BASE_REGISTER_AGENT_FEE,
     })
     console.log(`Registered Agent: ${chalk.blue(account)}`)
-    if (config.LOG_LEVEL === 'debug') console.log('REGISTER ARGS', res);
+    util.dbug('REGISTER ARGS', res);
   } catch (e) {
-    if (config.LOG_LEVEL === 'debug') console.log(e);
+    util.dbug(e);
     if(e.type === 'KeyNotFound') {
       console.log(`${chalk.red('Agent Registration Failed:')} ${chalk.bold.red(`Please login to your account '${account}' and try again.`)}`)
     } else {
@@ -49,7 +49,7 @@ export async function getAgent(agentId = config.AGENT_ACCOUNT_ID) {
     const res = await manager.get_agent({ account_id: agentId })
     return res
   } catch (ge) {
-    if (config.LOG_LEVEL === 'debug') console.log(ge);
+    util.dbug(ge);
   }
 }
 
@@ -57,17 +57,15 @@ export async function checkAgentBalance() {
   const balance = await getAgentBalance()
   const formattedBalance = utils.format.formatNearAmount(balance)
   const hasEnough = Big(balance).gt(config.BASE_GAS_FEE)
-  console.log(`
-    Agent Account: ${chalk.white(config.AGENT_ACCOUNT_ID)}
-    Agent Balance: ${!hasEnough ? chalk.red(formattedBalance) : chalk.green(formattedBalance)}
-  `)
+  console.log(`Agent Account: ${chalk.white(config.AGENT_ACCOUNT_ID)}
+Agent Balance: ${!hasEnough ? chalk.red(formattedBalance) : chalk.green(formattedBalance)}`)
   if (!hasEnough) {
     console.log(`
       ${chalk.red('Your agent account does not have enough to pay for signing transactions.')}
       Use the following steps:
       ${chalk.bold.white('1. Copy your account id: ')}${chalk.underline.white(config.AGENT_ACCOUNT_ID)}
       ${chalk.bold.white('2. Use the web wallet to send funds: ')}${chalk.underline.blue(util.Near.config.walletUrl + '/send-money')}
-      ${chalk.bold.white('3. Use NEAR CLI to send funds: ')} "near send OTHER_ACCOUNT ${config.AGENT_ACCOUNT_ID} ${(Big(BASE_GAS_FEE).mul(4))}"
+      ${chalk.bold.white('3. Use NEAR CLI to send funds: ')} "near send OTHER_ACCOUNT ${config.AGENT_ACCOUNT_ID} ${(Big(config.BASE_GAS_FEE).mul(4))}"
     `)
     process.exit(0)
   }
@@ -87,7 +85,7 @@ export async function checkAgentTaskBalance() {
 export async function refillAgentTaskBalance() {
   try {
     const manager = await util.getCronManager()
-    await manager.withdraw_task_balance({ args: {}, gas: BASE_GAS_FEE })
+    await manager.withdraw_task_balance({ args: {}, gas: config.BASE_GAS_FEE })
     const balance = await getAgentBalance()
     const notEnough = Big(balance).lt(config.AGENT_MIN_TASK_BALANCE)
     if (notEnough) {
@@ -123,6 +121,10 @@ export const pingAgentBalance = async () => {
 export const reRegisterAgent = async () => {
   if (!config.AGENT_AUTO_RE_REGISTER) process.exit(1)
   await registerAgent()
+}
+
+export const currentStatus = () => {
+  return agentSettings.status || 'Pending'
 }
 
 // returns if agent is active or not
@@ -197,7 +199,7 @@ export async function bootstrap() {
         process.exit(0);
       }
     } else {
-      console.log(`Registered Agent: ${chalk.white(agentId)}`)
+      console.log(`${chalk.gray('Registered Agent: ')}${chalk.white(agentId)}`)
     }
     croncatSettings = await util.getCroncatInfo()
     if (!croncatSettings) {
@@ -205,7 +207,7 @@ export async function bootstrap() {
       process.exit(1);
     }
   } catch (e) {
-    if (config.LOG_LEVEL === 'debug') console.log(e);
+    util.dbug(e);
     if (config.AGENT_AUTO_RE_REGISTER) requiresRegister = true
     else console.log(`No Agent: ${chalk.red('Please register')}`)
   }
@@ -215,5 +217,8 @@ export async function bootstrap() {
     await registerAgent(agentId)
   }
 
-  return agentSettings ? true : false
+  console.log(`${chalk.gray('Agent Status: ')}${chalk.white(agentSettings.status)}`)
+  if (agentSettings.status === 'Pending') console.log(`${chalk.yellow('Agent waiting until croncat manager changes agent status to Active...')}\n${chalk.gray('Do not stop this process unless you are done being a croncat agent, see https://cron.cat/tasks for more info')}`)
+
+  return agentSettings && agentSettings.status === 'Active' ? true : false
 }
