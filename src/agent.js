@@ -127,6 +127,10 @@ export const currentStatus = () => {
   return agentSettings.status || 'Pending'
 }
 
+export const settings = () => {
+  return agentSettings || {}
+}
+
 // returns if agent is active or not
 export const checkStatus = async () => {
   let isActive = false

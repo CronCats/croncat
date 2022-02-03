@@ -93,7 +93,6 @@ let cronManager = null
 
 export async function connect(options) {
   try {
-    // TODO: options
     await Near.getNearConnection(options)
   } catch (e) {
     log(`${chalk.red('NEAR Connection Failed')}`)

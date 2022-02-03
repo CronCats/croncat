@@ -59,17 +59,20 @@ export const proxyCall = async () => {
   return skipThisIteration
 }
 
+let agentSettings = {}
 export async function run() {
   let skipThisIteration = false
+  let previousAgentSettings = { ...agentSettings }
+  agentSettings = agent.settings()
 
   // 1. Check for tasks
   skipThisIteration = await getTasks()
-  if (skipThisIteration) return setTimeout(run, config.WAIT_INTERVAL_MS)
 
-  // 2. Check agent status
-  // TODO: Change - to only check if KICKED, needs to store local agent state
-  // skipThisIteration = await checkAgent()
-  // if (skipThisIteration) return setTimeout(run, config.WAIT_INTERVAL_MS)
+  // 2. Check agent kicked, if so, stop the loop until auto-reregister kicks in
+  if (
+    previousAgentSettings && previousAgentSettings.status === 'Active' && 
+    agentSettings && !agentSettings.status
+  ) skipThisIteration = true
 
   // 3. Sign task and submit to chain
   if (!skipThisIteration) skipThisIteration = await proxyCall()
