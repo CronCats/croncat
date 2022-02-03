@@ -23,7 +23,8 @@ Commands:
   croncat unregister <account_id>                     Account to remove from list of active agents.
   croncat withdraw [account_id]                       Withdraw all rewards earned for this account
   croncat status [account_id]                         Check agent status and balance for this account
-  croncat tasks                                       Check how many tasks are currently available
+  croncat tasks                                       Check tasks list
+  croncat triggers                                    Check how many triggers are currently available
   croncat go [account_id]                             Run tasks that are available, if agent is registered and has balance
   croncat daemon [near_env]                           Generate a network specific croncat daemon service
 ```
@@ -80,6 +81,7 @@ You can then configure the following:
 NODE_ENV=production
 NEAR_ENV=mainnet
 LOG_LEVEL=info
+BETA_FEATURES=false
 
 # The account registered as an agent
 AGENT_ACCOUNT_ID=YOUR_ACCOUNT.near
@@ -92,6 +94,10 @@ AGENT_AUTO_RE_REGISTER=false
 
 # The interval to wait between checking for tasks. Good intervals are below 60 seconds and above 10 seconds.
 WAIT_INTERVAL_MS=450000
+
+# Period between checking triggers, needs to be less than 10 seconds to be effective
+# Period will need to be consistent with RPC rate limits to ensure query goes through
+TRIGGER_INTERVAL_MS=10000
 
 ## Notify slack when events happen
 SLACK_TOKEN=YOUR_WEBHOOK_TOKEN
@@ -162,6 +168,7 @@ Examples:
 
 ```
 node bin/croncat tasks
+node bin/croncat triggers
 node bin/croncat register agent.in.testnet agent.in.testnet
 node bin/croncat status agent.in.testnet
 node bin/croncat go agent.in.testnet
