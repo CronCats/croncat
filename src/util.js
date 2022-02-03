@@ -1,13 +1,12 @@
 import * as config from './configuration'
 const contractAbi = require('./contract_abi.json')
-import { utils } from 'near-api-js'
 import axios from 'axios'
 import NearProvider from './near'
 import chalk from 'chalk'
 import slack from './slack'
 
-const slackToken = process.env.SLACK_TOKEN || null
-const slackChannel = process.env.SLACK_CHANNEL || 'general'
+const slackToken = config.SLACK_TOKEN || null
+const slackChannel = config.SLACK_CHANNEL || 'general'
 const slackProvider = new slack({ slackToken })
 export const notifySlack = text => {
   try {
@@ -16,22 +15,22 @@ export const notifySlack = text => {
       text
     })
   } catch (e) {
-    if (LOG_LEVEL === 'debug') console.log('notifySlack', e);
+    if (config.LOG_LEVEL === 'debug') console.log('notifySlack', e);
   }
 }
 
 export const pingHeartbeat = async () => {
-  if (process.env.HEARTBEAT === 'true') {
+  if (config.HEARTBEAT === 'true') {
     try {
-      await axios.get(process.env.HEARTBEAT_URL)
+      await axios.get(config.HEARTBEAT_URL)
     } catch (e) {
-      if (LOG_LEVEL === 'debug') console.log('pingHeartbeat', e);
+      if (config.LOG_LEVEL === 'debug') console.log('pingHeartbeat', e);
     }
   }
   return Promise.resolve()
 }
 
-function removeUnneededArgs(obj) {
+export const removeUnneededArgs = obj => {
   const allowed = ['agent_account_id', 'payable_account_id', 'account', 'offset', 'accountId', 'account_id', 'payableAccountId']
   const fin = {}
 
@@ -58,9 +57,10 @@ export const atob = (base64) => {
   return Buffer.from(base64, 'base64').toString('utf8')
 }
 
+// TODO: Multiple based on RPC providers
 export const Near = new NearProvider({
-  networkId: env === 'production' ? 'mainnet' : 'testnet',
-  accountId: AGENT_ACCOUNT_ID,
+  networkId: config.NODE_ENV === 'production' ? 'mainnet' : 'testnet',
+  accountId: config.AGENT_ACCOUNT_ID,
 })
 
 export const queryRpc = async (account_id, method_name, args, options = {}, args_base64) => {
@@ -78,7 +78,7 @@ export const queryRpc = async (account_id, method_name, args, options = {}, args
       args_base64: args_base64 || btoa(JSON.stringify(args || {}))
     })
   } catch (e) {
-    if (LOG_LEVEL === 'debug') console.log('queryRpc', e)
+    if (config.LOG_LEVEL === 'debug') console.log('queryRpc', e)
   }
 
   return options && typeof options.request_type !== 'undefined' ? res : parseResponse(res.result)
@@ -89,28 +89,29 @@ let cronManager = null
 
 export async function connect(options) {
   try {
+    // TODO: options
     await Near.getNearConnection(options)
   } catch (e) {
     log(`${chalk.red('NEAR Connection Failed')}`)
-    if (LOG_LEVEL === 'debug') console.log('near connect', e);
+    if (config.LOG_LEVEL === 'debug') console.log('near connect', e);
     // TODO: Retry with diff Provider before hard exit
     process.exit(1)
   }
 }
 
-export async function getCronManager(accountId, options) {
+export async function getCronManager(accountId) {
   if (cronManager) return cronManager
-  await connect(options)
+  await connect()
   const _n = Near
   const abi = contractAbi.abis.manager
-  const contractId = contractAbi[env].manager
+  const contractId = contractAbi[config.NEAR_ENV].manager
   if (accountId) _n.accountId = accountId
   cronManager = await _n.getContractInstance(contractId, abi)
   return cronManager
 }
 
-export async function getCroncatInfo(options) {
-  const manager = await getCronManager(null, options)
+export async function getCroncatInfo() {
+  const manager = await getCronManager()
   try {
     const res = await manager.get_info()
 
@@ -132,6 +133,6 @@ export async function getCroncatInfo(options) {
       agent_storage_usage: res[14],
     }
   } catch (e) {
-    if (LOG_LEVEL === 'debug') console.log('getCroncatInfo', e);
+    if (config.LOG_LEVEL === 'debug') console.log('getCroncatInfo', e);
   }
 }

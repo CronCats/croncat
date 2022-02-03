@@ -7,7 +7,7 @@ import chalk from 'chalk'
 export async function rpcFunction(method, args, isView, gas = BASE_GAS_FEE, amount = BASE_ATTACHED_PAYMENT) {
   const account = args.account || args.account_id || args.agent_account_id || AGENT_ACCOUNT_ID
   const manager = await getCronManager(account, args)
-  const params = method === 'unregister' ? {} : removeUnneededArgs(args)
+  const params = method === 'unregister' ? {} : util.removeUnneededArgs(args)
   let res
   if (LOG_LEVEL === 'debug') console.log(account, isView, manager[method], params, gas, amount);
 
@@ -75,7 +75,7 @@ export async function rpcFunction(method, args, isView, gas = BASE_GAS_FEE, amou
 // returns if agent should skip next call or not
 export const getTasks = async () => {
   const manager = await util.getCronManager()
-  const agentId = agent.accountId()
+  const agentId = config.AGENT_ACCOUNT_ID
   let skipThisIteration = false
   let totalTasks = 0
   let taskRes
@@ -92,7 +92,7 @@ export const getTasks = async () => {
   }
   totalTasks = parseInt(taskRes[0])
   if (taskRes[1] === '0') console.log(`${chalk.gray(new Date().toISOString())} Available Tasks: ${chalk.red(totalTasks)}, Current Slot: ${chalk.red('Paused')}`)
-  else console.log(`${chalk.gray(new Date().toISOString())} ${chalk.gray('[' + options.networkId.toUpperCase() + ']')} Available Tasks: ${chalk.blueBright(totalTasks)}, Current Slot: ${chalk.yellow(taskRes[1])}`)
+  else console.log(`${chalk.gray(new Date().toISOString())} ${chalk.gray('[' + manager.account.connection.networkId.toUpperCase() + ']')} Available Tasks: ${chalk.blueBright(totalTasks)}, Current Slot: ${chalk.yellow(taskRes[1])}`)
 
   if (config.LOG_LEVEL === 'debug') console.log('taskRes', taskRes)
   if (totalTasks <= 0) skipThisIteration = true
@@ -135,7 +135,7 @@ export async function run() {
   if (skipThisIteration) return setTimeout(run, config.WAIT_INTERVAL_MS)
 
   // 2. Check agent status
-  // TODO: Change - to only check if KICKED
+  // TODO: Change - to only check if KICKED, needs to store local agent state
   // skipThisIteration = await checkAgent()
   // if (skipThisIteration) return setTimeout(run, config.WAIT_INTERVAL_MS)
 

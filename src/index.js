@@ -4,7 +4,7 @@ import * as tasks from './tasks'
 import * as triggers from './triggers'
 
 // Start agent sub-loops
-const runSubLoops = () => {
+export const runSubLoops = async () => {
   // Continuous check for agent status changes
   agent.run()
 
@@ -14,19 +14,18 @@ const runSubLoops = () => {
   if (config.BETA_FEATURES) triggers.run()
 }
 
-// Cron Agent Loops
-(async () => {
+export const runMainLoop = async () => {
   // Load up the agent
   const isActive = await agent.bootstrap()
 
   if (isActive) runSubLoops()
   else {
     // loop and check agent status until its available
-    function checkAgent() {
+    async function checkAgent() {
       const active = await agent.checkStatus()
       if (active) runSubLoops()
       else setTimeout(checkAgent, config.WAIT_INTERVAL_MS || 60 * 1000)
     }
     checkAgent()
   }
-})()
+}

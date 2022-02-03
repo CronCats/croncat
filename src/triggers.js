@@ -13,10 +13,10 @@ export const getTriggers = async (from_index = 0, limit = 100) => {
   let triggers = []
   try {
     // Only get task hashes my agent can execute
-    triggers = await manager.get_triggers({ from_index, limit })
+    triggers = await manager.get_triggers({ from_index: `${from_index}`, limit: `${limit}` })
     console.log('triggers', triggers)
   } catch (e) {
-    if (LOG_LEVEL === 'debug') console.log('getTriggers', e)
+    if (config.LOG_LEVEL === 'debug') console.log('getTriggers', e)
   }
 
   return triggers
@@ -61,7 +61,7 @@ export const viewTrigger = async trigger_hash => {
     // check outcome === true
     // res should return a standard payload: (bool, Base64VecU8)
   } catch (e) {
-    if (LOG_LEVEL === 'debug') console.log('callTrigger', e)
+    if (config.LOG_LEVEL === 'debug') console.log('callTrigger', e)
   }
 
   return outcome
@@ -78,7 +78,7 @@ export const callTrigger = async trigger_hash => {
     const res = await manager.proxy_conditional_call({ trigger_hash })
     console.log('callTrigger res', res)
   } catch (e) {
-    if (LOG_LEVEL === 'debug') console.log('callTrigger', e)
+    if (config.LOG_LEVEL === 'debug') console.log('callTrigger', e)
   }
 }
 
@@ -87,10 +87,11 @@ export const callTrigger = async trigger_hash => {
 // NOTE: This is built without batching, could be implemented in the future
 export async function run() {
   const allTriggers = await getAllTriggers()
+  console.log('allTriggers', allTriggers);
 
   // If there aren't any triggers, wait a while before checking for more
   if (!allTriggers || allTriggers.length <= 0) {
-    setTimeout(() => { run() }, CACHE_DELAY)
+    setTimeout(run, CACHE_DELAY)
     return
   }
 
@@ -106,5 +107,5 @@ export async function run() {
   // TODO: Check if RPC processing time too longer than interval, if so do next immediately
   // TODO: Add logging & stats logging if desired
   // Wait, then loop again.
-  setTimeout(() => { run() }, config.TRIGGER_INTERVAL_MS)
+  setTimeout(run, config.TRIGGER_INTERVAL_MS)
 }
