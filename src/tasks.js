@@ -7,7 +7,6 @@ import chalk from 'chalk'
 export const getTasks = async () => {
   const manager = await util.getCronManager()
   const agentId = config.AGENT_ACCOUNT_ID
-  const agentStatus = agent.currentStatus()
   let skipThisIteration = false
   let totalTasks = 0
   let taskRes
@@ -23,8 +22,8 @@ export const getTasks = async () => {
     return;
   }
   totalTasks = parseInt(taskRes[0])
-  if (taskRes[1] === '0') console.log(`${chalk.gray(new Date().toISOString())} ${chalk.gray('[' + manager.account.connection.networkId.toUpperCase() + ' ' + agentStatus + ']')} Tasks: ${chalk.red(totalTasks)}, Current Slot: ${chalk.red('Paused')}`)
-  else console.log(`${chalk.gray(new Date().toISOString())} ${chalk.gray('[' + manager.account.connection.networkId.toUpperCase() + ' ' + agentStatus + ']')} Tasks: ${chalk.blueBright(totalTasks)}, Current Slot: ${chalk.yellow(taskRes[1])}`)
+  if (taskRes[1] === '0') console.log(`${chalk.gray(new Date().toISOString())} ${chalk.gray('[' + manager.account.connection.networkId.toUpperCase() + ' ' + agentId + ']')} Tasks: ${chalk.red(totalTasks)}, Current Slot: ${chalk.red('Paused')}`)
+  else console.log(`${chalk.gray(new Date().toISOString())} ${chalk.gray('[' + manager.account.connection.networkId.toUpperCase() + ' ' + agentId + ']')} Tasks: ${chalk.blueBright(totalTasks)}, Current Slot: ${chalk.yellow(taskRes[1])}`)
 
   util.dbug('taskRes', taskRes)
   if (totalTasks <= 0) skipThisIteration = true
@@ -43,8 +42,8 @@ export const proxyCall = async () => {
       gas: config.BASE_GAS_FEE,
       amount: config.BASE_ATTACHED_PAYMENT,
     })
-    util.dbug(res)
-    util.dbug(`${chalk.yellowBright('TX:' + res.transaction_outcome.id)}`)
+    // util.dbug(res)
+    if (res && res.transaction_outcome && res.transaction_outcome.id) util.dbug(`${chalk.yellowBright('TX:' + res.transaction_outcome.id)}`)
   } catch (e) {
     util.dbug('proxy_call issue', e)
     // Check if the agent should slow down to wait for next slot opportunity

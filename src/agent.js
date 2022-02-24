@@ -109,9 +109,6 @@ export const pingAgentBalance = async () => {
   // NOTE: This is really only useful if the payout account is the same as the agent
   if (config.AGENT_AUTO_REFILL && agentBalanceCheckIdx === 0) {
     await checkAgentTaskBalance()
-
-    // Always ping heartbeat here, checks config
-    await util.pingHeartbeat()
   }
   agentBalanceCheckIdx++
   if (agentBalanceCheckIdx > 5) agentBalanceCheckIdx = 0
@@ -139,6 +136,7 @@ export const checkStatus = async () => {
   try {
     agentSettings = await agent.getAgent()
   } catch (ae) {
+    util.dbug(ae)
     agentSettings = {}
     // if no status, trigger a delayed retry
     return isActive

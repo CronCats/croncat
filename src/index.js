@@ -11,14 +11,24 @@ export const runSubLoops = async () => {
 
   // do the things
   tasks.run()
+  
   // do the moar thinsg
-  // TODO: Remove once feature is fully launched in mainnet
-  if (config.BETA_FEATURES) triggers.run()
+  triggers.run()
 }
 
 export const runMainLoop = async () => {
   // Load up the agent
   const isActive = await agent.bootstrap()
+
+  // Setup heartbeat monitor if configured
+  if (config.HEARTBEAT) {
+    // loop and check agent status until its available
+    async function heartbeatPing() {
+      await util.pingHeartbeat()
+      setTimeout(heartbeatPing, config.WAIT_INTERVAL_MS * 2)
+    }
+    heartbeatPing()
+  }
 
   if (isActive) runSubLoops()
   else {

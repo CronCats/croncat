@@ -24,7 +24,7 @@ export const notifySlack = text => {
 }
 
 export const pingHeartbeat = async () => {
-  if (config.HEARTBEAT === 'true') {
+  if (config.HEARTBEAT && config.HEARTBEAT_URL) {
     try {
       await axios.get(config.HEARTBEAT_URL)
     } catch (e) {
