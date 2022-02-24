@@ -134,7 +134,7 @@ export const checkStatus = async () => {
   let previousAgentSettings = { ...agentSettings }
 
   try {
-    agentSettings = await agent.getAgent()
+    agentSettings = await getAgent()
   } catch (ae) {
     util.dbug(ae)
     agentSettings = {}
