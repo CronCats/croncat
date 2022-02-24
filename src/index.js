@@ -11,9 +11,9 @@ export const runSubLoops = async () => {
 
   // do the things
   tasks.run()
-  
+
   // do the moar thinsg
-  triggers.run()
+  if (config.BETA_FEATURES) triggers.run()
 }
 
 export const runMainLoop = async () => {
