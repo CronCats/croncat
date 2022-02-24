@@ -1,12 +1,15 @@
 require('dotenv').config()
-const chalk = require('chalk')
-const yargs = require('yargs')
-import { utils } from 'near-api-js'
-import getConfig from '../src/configuration'
+import chalk from 'chalk'
+import yargs from 'yargs'
 import { createDaemonFile } from '../src/createSystemctl'
-const { agentFunction, bootstrapAgent, runAgentTick, registerAgent } = require('../src/actions')
+import * as config from '../src/configuration'
+import * as entry from '../src/index'
+import * as agent from '../src/agent'
+import * as rpc from '../src/rpc'
+import * as triggers from '../src/triggers'
+import * as util from '../src/util'
 
-const AGENT_ACCOUNT_ID = process.env.AGENT_ACCOUNT_ID
+const AGENT_ACCOUNT_ID = config.AGENT_ACCOUNT_ID
 
 const registerAgentCmd = {
   command: 'register <account_id> [payable_account_id]',
@@ -23,10 +26,9 @@ const registerAgentCmd = {
       required: false
     }),
   handler: async options => {
-    // await agentFunction('register_agent', options, false, undefined, 1e25);
-    await registerAgent(options.account_id, options.payable_account_id || options.account_id, options);
+    await agent.registerAgent(options.account_id, options.payable_account_id)
   }
-};
+}
 
 const updateAgent = {
   command: 'update <account_id> [payable_account_id]',
@@ -43,9 +45,9 @@ const updateAgent = {
       required: false
     }),
   handler: async options => {
-    await agentFunction('update_agent', options);
+    await rpc.call('update_agent', options)
   }
-};
+}
 
 const unregisterAgent = {
   command: 'unregister <account_id>',
@@ -57,9 +59,9 @@ const unregisterAgent = {
       required: true
     }),
   handler: async options => {
-    await agentFunction('unregister_agent', options, false, undefined, '0.000000000000000000000001')
+    await rpc.call('unregister_agent', options, false, undefined, '0.000000000000000000000001')
   }
-};
+}
 
 const withdrawBalance = {
   command: 'withdraw [account_id]',
@@ -71,10 +73,10 @@ const withdrawBalance = {
       required: false
     }),
   handler: async options => {
-    if (!options.account_id) options.account_id = AGENT_ACCOUNT_ID
-    await agentFunction('withdraw_task_balance', options);
+    if (!options.account_id) options.account_id = config.AGENT_ACCOUNT_ID
+    await rpc.call('withdraw_task_balance', options)
   }
-};
+}
 
 const status = {
   command: 'status [account_id]',
@@ -86,37 +88,42 @@ const status = {
       required: false
     }),
   handler: async options => {
-    if (!options.account_id && AGENT_ACCOUNT_ID) options.account_id = AGENT_ACCOUNT_ID
-    await agentFunction('get_agent', options, true);
+    if (!options.account_id && config.AGENT_ACCOUNT_ID) options.account_id = config.AGENT_ACCOUNT_ID
+    await rpc.call('get_agent', options, true)
   }
-};
+}
 
-const tasks = {
+const tasksCmd = {
   command: 'tasks',
   desc: 'Check how many tasks are currently available',
   builder: (yargs) => yargs,
   handler: async options => {
-    await agentFunction('get_slot_tasks', options, true);
+    // Deprecated in favor of web UI
+    // await rpc.call('get_slot_tasks', options, true)
+    const manager = await util.getCronManager()
+    const { networkId } = manager.account.connection
+    console.log(`${chalk.gray('View ' + networkId.toLowerCase() + ' Tasks:')} ${chalk.blueBright('https://cron.cat/tasks?network=' + networkId.toLowerCase())}`)
   }
-};
+}
+
+const triggersCmd = {
+  command: 'triggers',
+  desc: 'Check how many triggers are currently available',
+  builder: (yargs) => yargs,
+  handler: async options => {
+    await triggers.getTriggers()
+  }
+}
 
 const go = {
-  command: 'go [account_id]',
-  desc: 'Run tasks that are available, if agent is registered and has balance',
-  builder: (yargs) => yargs
-    .option('account_id', {
-      desc: 'Account to check',
-      type: 'string',
-      required: false
-    }),
+  command: 'go',
+  desc: 'Run all types of tasks that are available',
+  builder: (yargs) => yargs,
   handler: async options => {
-    if (!options.account_id && AGENT_ACCOUNT_ID) options.account_id = AGENT_ACCOUNT_ID
-    await bootstrapAgent(options.account_id, options)
-
     // MAIN AGENT LOOP
-    runAgentTick(options)
+    entry.runMainLoop()
   }
-};
+}
 
 const daemon = {
   command: 'daemon [near_env]',
@@ -131,9 +138,9 @@ const daemon = {
     const env = options.near_env || 'testnet'
     await createDaemonFile(env)
   }
-};
+}
 
-const config = getConfig(process.env.NODE_ENV || 'development')
+const configd = config.getConfig(process.env.NODE_ENV || 'development')
 yargs // eslint-disable-line
   .strict()
   .scriptName('croncat')
@@ -148,12 +155,12 @@ yargs // eslint-disable-line
   .option('nodeUrl', {
     desc: 'NEAR node URL',
     type: 'string',
-    default: config.nodeUrl
+    default: configd.nodeUrl
   })
   .option('networkId', {
     desc: 'NEAR network ID, allows using different keys based on network',
     type: 'string',
-    default: config.networkId
+    default: configd.networkId
   })
   .option('helperUrl', {
     desc: 'NEAR contract helper URL',
@@ -173,14 +180,15 @@ yargs // eslint-disable-line
   .command(unregisterAgent)
   .command(withdrawBalance)
   .command(status)
-  .command(tasks)
+  .command(tasksCmd)
+  .command(triggersCmd)
   .command(go)
   .command(daemon)
-  .config(config)
+  .config(configd)
   .showHelpOnFail(true)
   .recommendCommands()
   .demandCommand(1, chalk`Pass {bold --help} to see all available commands and options.`)
   .usage(chalk`Usage: {bold $0 <command> [options]}`)
   .epilogue(chalk`More info: {bold https://cron.cat}`)
   .wrap(null)
-  .argv;
+  .argv

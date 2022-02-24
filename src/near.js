@@ -4,15 +4,15 @@ import { connect, KeyPair, keyStores, Contract, utils, WalletConnection, WalletA
 // import fs from 'fs'
 import path from 'path'
 import { homedir } from 'os'
-import getConfig from './configuration'
+import * as config from './configuration'
 
 const CREDENTIALS_DIR = '.near-credentials'
 const credentialsBasePath = path.join(homedir(), CREDENTIALS_DIR)
 
 class NearProvider {
 
-  constructor(config = {}) {
-    this.config = getConfig(config.networkId || 'testnet')
+  constructor(options = {}) {
+    this.config = config.getConfig(options.networkId || 'testnet')
     this.credentials = null
     this.client = null
     this.accountId = null
@@ -46,7 +46,7 @@ class NearProvider {
     if (this.client) return this.client
     const keyStore = new keyStores.UnencryptedFileSystemKeyStore(credentialsBasePath)
     let nodeUrl = options.nodeUrl
-    const config = options.networkId ? getConfig(options.networkId) : this.config
+    const config = options.networkId ? config.getConfig(options.networkId) : this.config
     if (nodeUrl && options.networkId !== config.networkId) config.nodeUrl = nodeUrl
     try {
       this.client = await connect(Object.assign({ deps: { keyStore } }, config))

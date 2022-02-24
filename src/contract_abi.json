@@ -42,6 +42,7 @@
         "create_trigger",
         "remove_trigger",
         "proxy_call",
+        "proxy_conditional_call",
         "register_agent",
         "update_agent",
         "unregister_agent",
