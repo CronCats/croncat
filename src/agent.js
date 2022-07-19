@@ -14,7 +14,7 @@ export async function getAgentBalance() {
     return balance
   } catch (e) {
     console.log(`${chalk.red('NEAR RPC Failed')}`)
-    await notifySlack(`*Attention!* NEAR ${near_env} RPC Failed to retrieve balance!`)
+    await utils.notifySlack(`*Attention!* NEAR ${near_env} RPC Failed to retrieve balance!`)
     process.exit(1)
   }
 }

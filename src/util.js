@@ -66,6 +66,7 @@ export const Near = new NearProvider({
   networkId: config.NODE_ENV === 'production' ? 'mainnet' : config.NODE_ENV || 'testnet',
   accountId: config.AGENT_ACCOUNT_ID,
 })
+util.dbug('Near OBJ', Near);
 
 export const queryRpc = async (account_id, method_name, args, options = {}, args_base64) => {
   // load contract based on abis & type
@@ -92,6 +93,7 @@ export const queryRpc = async (account_id, method_name, args, options = {}, args
 let cronManager = null
 
 export async function connect(options) {
+  util.dbug('connect options', options);
   try {
     await Near.getNearConnection(options)
   } catch (e) {
