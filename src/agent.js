@@ -1,6 +1,7 @@
 import * as config from './configuration'
 import * as util from './util'
 import { utils } from 'near-api-js'
+import * as util from './util'
 import Big from 'big.js'
 import chalk from 'chalk'
 
@@ -14,7 +15,7 @@ export async function getAgentBalance() {
     return balance
   } catch (e) {
     console.log(`${chalk.red('NEAR RPC Failed')}`)
-    await utils.notifySlack(`*Attention!* NEAR ${near_env} RPC Failed to retrieve balance!`)
+    await util.notifySlack(`*Attention!* NEAR ${near_env} RPC Failed to retrieve balance!`)
     process.exit(1)
   }
 }
