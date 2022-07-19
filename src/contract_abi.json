@@ -5,6 +5,9 @@
   "testnet": {
     "manager": "manager_v1.croncat.testnet"
   },
+  "shardnet": {
+    "manager": "manager_v1.croncat.shardnet.near"
+  },
   "guildnet": {
     "manager": "manager_v1.croncat.guildnet"
   },
