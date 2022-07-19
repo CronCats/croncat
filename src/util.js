@@ -63,7 +63,7 @@ export const atob = (base64) => {
 
 // TODO: Multiple based on RPC providers
 export const Near = new NearProvider({
-  networkId: config.NODE_ENV === 'production' ? 'mainnet' : config.NODE_ENV || 'testnet',
+  networkId: config.NODE_ENV === 'production' ? 'mainnet' : config.NEAR_ENV || process.env.NEAR_ENV || 'testnet',
   accountId: config.AGENT_ACCOUNT_ID,
 })
 dbug('Near OBJ', Near);
