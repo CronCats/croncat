@@ -19,7 +19,7 @@ export const notifySlack = text => {
       text
     })
   } catch (e) {
-    util.dbug('notifySlack', e);
+    dbug('notifySlack', e);
   }
 }
 
@@ -28,7 +28,7 @@ export const pingHeartbeat = async () => {
     try {
       await axios.get(config.HEARTBEAT_URL)
     } catch (e) {
-      util.dbug('pingHeartbeat', e);
+      dbug('pingHeartbeat', e);
     }
   }
   return Promise.resolve()
@@ -66,7 +66,7 @@ export const Near = new NearProvider({
   networkId: config.NODE_ENV === 'production' ? 'mainnet' : config.NODE_ENV || 'testnet',
   accountId: config.AGENT_ACCOUNT_ID,
 })
-util.dbug('Near OBJ', Near);
+dbug('Near OBJ', Near);
 
 export const queryRpc = async (account_id, method_name, args, options = {}, args_base64) => {
   // load contract based on abis & type
@@ -83,7 +83,7 @@ export const queryRpc = async (account_id, method_name, args, options = {}, args
       args_base64: args_base64 || btoa(JSON.stringify(args || {}))
     })
   } catch (e) {
-    util.dbug('queryRpc', e)
+    dbug('queryRpc', e)
   }
 
   return options && typeof options.request_type !== 'undefined' ? res : parseResponse(res.result)
@@ -93,12 +93,12 @@ export const queryRpc = async (account_id, method_name, args, options = {}, args
 let cronManager = null
 
 export async function connect(options) {
-  util.dbug('connect options', options);
+  dbug('connect options', options);
   try {
     await Near.getNearConnection(options)
   } catch (e) {
     log(`${chalk.red('NEAR Connection Failed')}`)
-    util.dbug('near connect', e);
+    dbug('near connect', e);
     // TODO: Retry with diff Provider before hard exit
     process.exit(1)
   }
@@ -138,6 +138,6 @@ export async function getCroncatInfo() {
       agent_storage_usage: res[14],
     }
   } catch (e) {
-    util.dbug('getCroncatInfo', e);
+    dbug('getCroncatInfo', e);
   }
 }
