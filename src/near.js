@@ -1,5 +1,6 @@
 import "core-js/stable"
 import "regenerator-runtime/runtime"
+require('dotenv').config()
 import { connect, KeyPair, keyStores, Contract, utils, WalletConnection, WalletAccount } from 'near-api-js'
 // import fs from 'fs'
 import path from 'path'
@@ -12,7 +13,7 @@ const credentialsBasePath = path.join(homedir(), CREDENTIALS_DIR)
 class NearProvider {
 
   constructor(options = {}) {
-    this.config = config.getConfig(options.networkId || 'testnet')
+    this.config = config.getConfig(options.networkId || process.env.NEAR_ENV || 'testnet')
     this.credentials = null
     this.client = null
     this.accountId = null
