@@ -1,7 +1,6 @@
 import * as config from './configuration'
 import * as util from './util'
 import { utils } from 'near-api-js'
-import * as util from './util'
 import Big from 'big.js'
 import chalk from 'chalk'
 
